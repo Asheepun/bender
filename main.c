@@ -8,6 +8,28 @@
 #include "math.h"
 #include "string.h"
 
+bool Vec2f_checkOub(Vec2f v){
+	if(v.x < 0
+	|| v.y < 0
+	|| v.x >= WIDTH
+	|| v.y >= HEIGHT){
+		return true;
+	}
+
+	return false;
+}
+
+bool Particle_checkOub(Particle *particle_p){
+	if(particle_p->pos.x < 0
+	|| particle_p->pos.y < 0
+	|| particle_p->pos.x >= WIDTH
+	|| particle_p->pos.y >= HEIGHT){
+		return true;
+	}
+
+	return false;
+}
+
 void Engine_start(){
 
 	Engine_setWindowTitle("Simulation sketches");
@@ -45,7 +67,7 @@ void Engine_start(){
 
 	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * WIDTH * HEIGHT);
 
-	for(int x = 0; x < 100; x++){
+	for(int x = 0; x < 200; x++){
 		for(int y = 0; y < 100; y++){
 
 			Vec2f pos = getVec2f(200 + x - y * 1, 100 + y);
@@ -128,12 +150,13 @@ void Engine_update(float deltaTime){
 
 					int index = getBufferIndex(pos.x, pos.y);
 
-					if(checkPixelEquals(staticParticlesBuffer[index], rockColor)
+					if(!Vec2f_checkOub(pos)
+					&& checkPixelEquals(staticParticlesBuffer[index], rockColor)
 					&& getMagVec2f(getSubVec2f(pos, forcePoint)) < BENDING_RADIUS){
 						
 						staticParticlesBuffer[index] = backgroundColor;
 
-						addParticle(pos);
+						Particle *particle_p = addParticle(pos);
 
 					}
 				
@@ -207,6 +230,164 @@ void Engine_update(float deltaTime){
 	//handle col y
 	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * WIDTH * HEIGHT);
 
+	for(int i = 0; i < particles.length; i++){
+
+		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+
+		if(Particle_checkOub(particle_p)){
+			continue;
+		}
+
+		int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
+
+		//check and handle if particle collides with static particle
+		if(checkPixelEquals(staticParticlesBuffer[index], rockColor)){
+
+			int n = 0;
+			bool oub = false;
+
+			bool foundSomething = false;
+
+			while(n < HEIGHT){
+
+				n++;
+
+				index = getBufferIndex(particle_p->pos.x, particle_p->pos.y + n);
+
+				if((int)particle_p->pos.y + n < HEIGHT
+				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+					foundSomething = true;
+					break;
+				}
+
+				index = getBufferIndex(particle_p->pos.x, particle_p->pos.y - n);
+
+				if((int)particle_p->pos.y - n > 0
+				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+					foundSomething = true;
+					n = -n;
+					break;
+				}
+			
+			}
+
+			particle_p->pos.y = (int)particle_p->pos.y + n;
+
+			float distanceToForcePoint = getMagVec2f(getSubVec2f(particle_p->pos, forcePoint));
+			
+			bool inForce = distanceToForcePoint < BENDING_RADIUS + BENDING_RADIUS_MARGIN && Engine_pointer.down;
+
+			if(!inForce){
+
+				index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
+			
+				staticParticlesBuffer[index] = rockColor;
+
+				Array_removeItemByIndex(&particles, i);
+				i--;
+
+				continue;
+			
+			}
+			
+		}
+
+		//check and handle if particle collides with moving particle
+		if(collisionBuffer[index].index != -1){
+
+			int movementDirection = 1;
+			if(particle_p->velocity.y < 0){
+				movementDirection = -1;
+			}
+
+			int n = 0;
+
+			while(n < HEIGHT){
+
+				n++;
+
+				index = getBufferIndex(particle_p->pos.x, particle_p->pos.y + n);
+
+				if(particle_p->pos.y + n < HEIGHT
+				&& collisionBuffer[index].index == -1
+				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+					break;
+				}
+
+				index = getBufferIndex(particle_p->pos.x, particle_p->pos.y - n);
+
+				if(particle_p->pos.y - n >= 0
+				&& collisionBuffer[index].index == -1
+				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+					n = -n;
+					break;
+				}
+			
+			}
+
+			particle_p->pos.y = (int)particle_p->pos.y + n;
+
+			particle_p->velocity.y *= COLLISION_DAMPING;
+
+		}
+
+		collisionBuffer[index].index = i;
+
+	}
+
+	/*
+	//handle player particle col y
+	{
+		bool col = false;
+		int highestCol = 0;
+		int lowestCol = HEIGHT;
+
+		for(int x = 0; x < player.size.x; x++){
+			for(int y = 0; y < player.size.y; y++){
+				
+				Vec2f pos = getVec2f(player.pos.x + x, player.pos.y + y);
+
+				int index = getBufferIndex(pos.x, pos.y);
+
+				if(checkPixelEquals(staticParticlesBuffer[index], rockColor)
+				|| collisionBuffer[index].index != -1){
+					col = true;
+
+					if(pos.y > highestCol){
+						highestCol = pos.y;
+					}
+					if(pos.y < lowestCol){
+						lowestCol = pos.y;
+					}
+
+				}
+
+			}
+		
+		}
+
+		player.onGround = false;
+
+		if(col){
+
+			float playerCenterY = player.pos.y + player.size.y / 2;
+			float centerCol = (highestCol + lowestCol) / 2;
+
+			if(playerCenterY < centerCol){
+				player.pos.y = lowestCol - player.size.y;
+				player.onGround = true;
+			}
+			if(playerCenterY > centerCol){
+				player.pos.y = highestCol;
+			}
+
+			player.velocity.y = 0;
+
+		}
+	}
+	*/
+
+	/*
 	//handle moving particles col y
 	{
 
@@ -214,10 +395,7 @@ void Engine_update(float deltaTime){
 
 			Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
 
-			if(particle_p->pos.x < 0
-			|| particle_p->pos.y < 0
-			|| particle_p->pos.x >= WIDTH
-			|| particle_p->pos.y >= HEIGHT){
+			if(Particle_checkOub(particle_p)){
 				continue;
 			}
 
@@ -256,10 +434,7 @@ void Engine_update(float deltaTime){
 				
 				Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
 
-				if(particle_p->pos.x < 0
-				|| particle_p->pos.y < 0
-				|| particle_p->pos.x >= WIDTH
-				|| particle_p->pos.y >= HEIGHT){
+				if(Particle_checkOub(particle_p)){
 					continue;
 				}
 
@@ -299,7 +474,9 @@ void Engine_update(float deltaTime){
 		
 		}
 	}
+*/
 	
+	/*
 	//handle player col y
 	{
 		bool col = false;
@@ -349,7 +526,9 @@ void Engine_update(float deltaTime){
 
 		}
 	}
+	*/
 
+	/*
 	//move particles x
 	for(int i = 0; i < particles.length; i++){
 
@@ -374,10 +553,7 @@ void Engine_update(float deltaTime){
 
 			Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
 
-			if(particle_p->pos.x < 0
-			|| particle_p->pos.y < 0
-			|| particle_p->pos.x >= WIDTH
-			|| particle_p->pos.y >= HEIGHT){
+			if(Particle_checkOub(particle_p)){
 				continue;
 			}
 
@@ -404,7 +580,7 @@ void Engine_update(float deltaTime){
 		
 	}
 
-	//handle static particles col y
+	//handle static particles col x
 	{
 		bool anyCols = true;
 
@@ -416,10 +592,7 @@ void Engine_update(float deltaTime){
 				
 				Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
 
-				if(particle_p->pos.x < 0
-				|| particle_p->pos.y < 0
-				|| particle_p->pos.x >= WIDTH
-				|| particle_p->pos.y >= HEIGHT){
+				if(Particle_checkOub(particle_p)){
 					continue;
 				}
 
@@ -506,6 +679,7 @@ void Engine_update(float deltaTime){
 
 		}
 	}
+	*/
 
 	//update screen texture
 	memcpy(screenBuffer, staticParticlesBuffer, sizeof(Pixel) * WIDTH * HEIGHT);

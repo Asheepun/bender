@@ -19,7 +19,7 @@ bool checkPixelEquals(Pixel p1, Pixel p2){
 		&& p1.a == p2.a;
 }
 
-void addParticle(Vec2f pos){
+Particle *addParticle(Vec2f pos){
 
 	Particle *particle_p = Array_addItem(&particles);
 
@@ -29,5 +29,7 @@ void addParticle(Vec2f pos){
 	particle_p->acceleration = getVec2f(0, 0);
 
 	particle_p->isBended = false;
+
+	return particle_p;
 
 }

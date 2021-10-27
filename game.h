@@ -12,6 +12,7 @@ typedef struct Particle{
 	Vec2f velocity;
 	Vec2f acceleration;
 	bool isBended;
+	bool isHovered;
 }Particle;
 
 typedef struct Pixel{
@@ -44,6 +45,7 @@ static int WIDTH = 800;
 static int HEIGHT = 450;
 
 static float BENDING_RADIUS = 25;
+static float BENDING_RADIUS_MARGIN = 10;
 static float BENDING_MAGNITUDE = 0.05;
 
 static float GRAVITY = 0.05;
@@ -75,6 +77,6 @@ int getBufferIndex(float, float);
 
 bool checkPixelEquals(Pixel, Pixel);
 
-void addParticle(Vec2f);
+Particle *addParticle(Vec2f);
 
 #endif
