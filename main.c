@@ -213,6 +213,8 @@ void Engine_update(float deltaTime){
 		player.velocity.x *= PLAYER_SIDE_RESITANCE;
 	}
 
+	//move and collide particles
+
 	//move particles y
 	for(int i = 0; i < particles.length; i++){
 
@@ -222,15 +224,11 @@ void Engine_update(float deltaTime){
 
 	}
 
-	//move player y
-	{
-		player.pos.y += player.velocity.y;
-	}
-
 	//handle col y
+	
+	//put particles into collision buffer y
 	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * WIDTH * HEIGHT);
 
-	//put particles into collision buffer y
 	for(int i = 0; i < particles.length; i++){
 
 		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
@@ -362,36 +360,11 @@ void Engine_update(float deltaTime){
 
 			particle_p->velocity.y *= COLLISION_DAMPING;
 
-			/*
-			if(collisionBuffer[index].ID != -1){
-				printf("bad\n");
-				printf("buffer: %i\n", collisionBuffer[index].ID);
-				printf("particle: %i\n", particle_p->ID);
-				printf("n: %i\n", n);
-				Vec2f_log(particle_p->pos);
-			}
-			*/
-
 		}
 
 		index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
 		collisionBuffer[index].ID = particle_p->ID;
-
-		{
-
-			int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
-
-			if(checkPixelEquals(staticParticlesBuffer[index], rockColor)
-			|| collisionBuffer[index].ID != particle_p->ID
-			&& collisionBuffer[index].ID != -1){
-				printf("STILL COL AFTER Y FIX!\n");
-				//Vec2f_log(particle_p->pos);
-				//printf("particle: %i\n", particle_p->ID);
-				//printf("buffer: %i\n", collisionBuffer[index].ID);
-			}
-		
-		}
 
 	}
 
@@ -422,15 +395,11 @@ void Engine_update(float deltaTime){
 
 	}
 
-	//move player x
-	{
-		player.pos.x += player.velocity.x;
-	}
-
 	//handle col x
+	
+	//put particles into collision buffer x
 	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * WIDTH * HEIGHT);
 
-	//put particles into collision buffer x
 	for(int i = 0; i < particles.length; i++){
 
 		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
@@ -561,6 +530,92 @@ void Engine_update(float deltaTime){
 
 		collisionBuffer[index].ID = particle_p->ID;
 
+	}
+
+	//move and collide player
+	
+	//put particles into collision buffer
+	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * WIDTH * HEIGHT);
+
+	for(int i = 0; i < particles.length; i++){
+
+		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+
+		if(!Particle_checkOub(particle_p)){
+
+			int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
+
+			collisionBuffer[index].ID = particle_p->ID;
+
+		}
+	
+	}
+
+	//move player y
+	{
+		player.pos.y += player.velocity.y;
+	}
+
+	player.onGround = false;
+
+	//check player col y
+	for(int y = 0; y < player.size.y; y++){
+		for(int x = 0; x < player.size.x; x++){
+
+			if((int)player.pos.y + y < 0
+			|| (int)player.pos.y + y >= HEIGHT){
+				continue;
+			}
+
+			int index = getBufferIndex((int)player.pos.x + x, (int)player.pos.y + y);
+
+			if(collisionBuffer[index].ID != -1
+			|| !checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+
+				if(y > player.size.y / 2){
+					player.pos.y = (int)player.pos.y - (player.size.y - y);
+					player.velocity.y = 0;
+					player.onGround = true;
+				}else{
+					player.pos.y = (int)player.pos.y + y + 1;
+					player.velocity.y = 0;
+				}
+				
+			}
+
+		}
+	}
+
+	//move player x
+	{
+		player.pos.x += player.velocity.x;
+	}
+
+	//check player col x
+	for(int x = 0; x < player.size.x; x++){
+		for(int y = 0; y < player.size.y; y++){
+
+			if((int)player.pos.x + x < 0
+			|| (int)player.pos.x + x >= HEIGHT){
+				continue;
+			}
+
+			int index = getBufferIndex((int)player.pos.x + x, (int)player.pos.y + y);
+
+			if(collisionBuffer[index].ID != -1
+			|| !checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+
+				if(x > player.size.x / 2){
+					player.pos.x = (int)player.pos.x - (player.size.x - x);
+					player.velocity.x = 0;
+				}else{
+					player.pos.x = (int)player.pos.x + x + 1;
+					player.velocity.x = 0;
+				}
+				
+			}
+
+		}
 	}
 
 	//update screen texture

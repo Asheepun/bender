@@ -54,7 +54,7 @@ static float AIR_FRICTION = 0.98;
 static float COLLISION_DAMPING = 0.9;
 
 static float PLAYER_JUMP_ACCELERATION = 4.5;
-static float PLAYER_GRAVITY = 0.20;
+static float PLAYER_GRAVITY = 0.15;
 static float PLAYER_SIDE_ACCELERATION = 0.35;
 static float PLAYER_SIDE_RESITANCE = 0.90;
 
