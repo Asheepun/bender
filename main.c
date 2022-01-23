@@ -9,10 +9,10 @@
 #include "string.h"
 
 bool Vec2f_checkOub(Vec2f v){
-	if(v.x < 0
-	|| v.y < 0
-	|| v.x >= WIDTH
-	|| v.y >= HEIGHT){
+	if((int)v.x < 0
+	|| (int)v.y < 0
+	|| (int)v.x >= WIDTH
+	|| (int)v.y >= HEIGHT){
 		return true;
 	}
 
@@ -20,10 +20,10 @@ bool Vec2f_checkOub(Vec2f v){
 }
 
 bool Particle_checkOub(Particle *particle_p){
-	if(particle_p->pos.x < 0
-	|| particle_p->pos.y < 0
-	|| particle_p->pos.x >= WIDTH
-	|| particle_p->pos.y >= HEIGHT){
+	if((int)particle_p->pos.x < 0
+	|| (int)particle_p->pos.y < 0
+	|| (int)particle_p->pos.x >= WIDTH
+	|| (int)particle_p->pos.y >= HEIGHT){
 		return true;
 	}
 
@@ -62,7 +62,7 @@ void Engine_start(){
 	}
 
 	for(int i = 0; i < WIDTH * HEIGHT; i++){
-		clearedCollisionBuffer[i].index = -1;
+		clearedCollisionBuffer[i].ID = -1;
 	}
 
 	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * WIDTH * HEIGHT);
@@ -230,6 +230,22 @@ void Engine_update(float deltaTime){
 	//handle col y
 	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * WIDTH * HEIGHT);
 
+	//put particles into collision buffer y
+	for(int i = 0; i < particles.length; i++){
+
+		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+
+		if(!Particle_checkOub(particle_p)){
+
+			int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
+
+			collisionBuffer[index].ID = particle_p->ID;
+
+		}
+	
+	}
+
+	//check and handle if particles collides with static particles and if they should become static particles y
 	for(int i = 0; i < particles.length; i++){
 
 		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
@@ -240,7 +256,6 @@ void Engine_update(float deltaTime){
 
 		int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-		//check and handle if particle collides with static particle
 		if(checkPixelEquals(staticParticlesBuffer[index], rockColor)){
 
 			int n = 0;
@@ -252,17 +267,19 @@ void Engine_update(float deltaTime){
 
 				n++;
 
-				index = getBufferIndex(particle_p->pos.x, particle_p->pos.y + n);
+				index = getBufferIndex(particle_p->pos.x, (int)particle_p->pos.y + n);
 
 				if((int)particle_p->pos.y + n < HEIGHT
+				&& (int)particle_p->pos.y + n >= 0
 				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
 					foundSomething = true;
 					break;
 				}
 
-				index = getBufferIndex(particle_p->pos.x, particle_p->pos.y - n);
+				index = getBufferIndex(particle_p->pos.x, (int)particle_p->pos.y - n);
 
-				if((int)particle_p->pos.y - n > 0
+				if((int)particle_p->pos.y - n < HEIGHT
+				&& (int)particle_p->pos.y - n > 0
 				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
 					foundSomething = true;
 					n = -n;
@@ -292,247 +309,114 @@ void Engine_update(float deltaTime){
 			
 		}
 
-		//check and handle if particle collides with moving particle
-		if(collisionBuffer[index].index != -1){
+	}
 
-			int movementDirection = 1;
-			if(particle_p->velocity.y < 0){
-				movementDirection = -1;
-			}
+	//check and handle if particles collide and move them out of the way y
+	for(int i = 0; i < particles.length; i++){
+
+		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+
+		int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
+
+		if((int)particle_p->pos.y < 0
+		|| (int)particle_p->pos.y >= HEIGHT
+		|| collisionBuffer[index].ID != -1
+		&& collisionBuffer[index].ID != particle_p->ID
+		|| checkPixelEquals(staticParticlesBuffer[index], rockColor)){
 
 			int n = 0;
+			bool foundSomething = false;
 
 			while(n < HEIGHT){
 
 				n++;
 
-				index = getBufferIndex(particle_p->pos.x, particle_p->pos.y + n);
+				index = getBufferIndex(particle_p->pos.x, (int)particle_p->pos.y + n);
 
-				if(particle_p->pos.y + n < HEIGHT
-				&& collisionBuffer[index].index == -1
+				if((int)particle_p->pos.y + n < HEIGHT
+				&& (int)particle_p->pos.y + n >= 0
+				&& collisionBuffer[index].ID == -1
 				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+					foundSomething = true;
 					break;
 				}
 
-				index = getBufferIndex(particle_p->pos.x, particle_p->pos.y - n);
+				index = getBufferIndex(particle_p->pos.x, (int)particle_p->pos.y - n);
 
-				if(particle_p->pos.y - n >= 0
-				&& collisionBuffer[index].index == -1
+				if((int)particle_p->pos.y - n < HEIGHT
+				&& (int)particle_p->pos.y - n >= 0
+				&& collisionBuffer[index].ID == -1
 				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+					foundSomething = true;
 					n = -n;
 					break;
 				}
 			
 			}
 
+			if(!foundSomething){
+				printf("Found nothing!\n");
+			}
+
 			particle_p->pos.y = (int)particle_p->pos.y + n;
 
 			particle_p->velocity.y *= COLLISION_DAMPING;
 
+			/*
+			if(collisionBuffer[index].ID != -1){
+				printf("bad\n");
+				printf("buffer: %i\n", collisionBuffer[index].ID);
+				printf("particle: %i\n", particle_p->ID);
+				printf("n: %i\n", n);
+				Vec2f_log(particle_p->pos);
+			}
+			*/
+
 		}
 
-		collisionBuffer[index].index = i;
+		index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-	}
+		collisionBuffer[index].ID = particle_p->ID;
 
-	/*
-	//handle player particle col y
-	{
-		bool col = false;
-		int highestCol = 0;
-		int lowestCol = HEIGHT;
-
-		for(int x = 0; x < player.size.x; x++){
-			for(int y = 0; y < player.size.y; y++){
-				
-				Vec2f pos = getVec2f(player.pos.x + x, player.pos.y + y);
-
-				int index = getBufferIndex(pos.x, pos.y);
-
-				if(checkPixelEquals(staticParticlesBuffer[index], rockColor)
-				|| collisionBuffer[index].index != -1){
-					col = true;
-
-					if(pos.y > highestCol){
-						highestCol = pos.y;
-					}
-					if(pos.y < lowestCol){
-						lowestCol = pos.y;
-					}
-
-				}
-
-			}
-		
-		}
-
-		player.onGround = false;
-
-		if(col){
-
-			float playerCenterY = player.pos.y + player.size.y / 2;
-			float centerCol = (highestCol + lowestCol) / 2;
-
-			if(playerCenterY < centerCol){
-				player.pos.y = lowestCol - player.size.y;
-				player.onGround = true;
-			}
-			if(playerCenterY > centerCol){
-				player.pos.y = highestCol;
-			}
-
-			player.velocity.y = 0;
-
-		}
-	}
-	*/
-
-	/*
-	//handle moving particles col y
-	{
-
-		for(int i = 0; i < particles.length; i++){
-
-			Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
-
-			if(Particle_checkOub(particle_p)){
-				continue;
-			}
+		{
 
 			int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-			while(collisionBuffer[index].index != -1){
-				
-				if(particle_p->velocity.y < 0){
-					particle_p->pos.y++;
-				}
-				if(particle_p->velocity.y >= 0){
-					particle_p->pos.y--;
-				}
-
-				particle_p->velocity.y *= COLLISION_DAMPING;
-
-				index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
-				
-			}
-
-			collisionBuffer[index].index = i;
-			
-		}
-		
-	}
-
-	//handle static particles col y
-	{
-		bool anyCols = true;
-
-		while(anyCols){
-
-			anyCols = false;
-
-			for(int i = 0; i < particles.length; i++){
-				
-				Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
-
-				if(Particle_checkOub(particle_p)){
-					continue;
-				}
-
-				bool col = false;
-
-				int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
-
-				while(checkPixelEquals(staticParticlesBuffer[index], rockColor)){
-
-					if(particle_p->velocity.y < 0){
-						particle_p->pos.y++;
-					}
-					if(particle_p->velocity.y >= 0){
-						particle_p->pos.y--;
-					}
-
-					index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
-				
-					col = true;
-					anyCols = true;
-				
-				}
-
-				if(col){
-					
-					staticParticlesBuffer[index] = rockColor;
-
-					Array_removeItemByIndex(&particles, i);
-
-					i--;
-
-					continue;
-
-				}
-
-			}
-		
-		}
-	}
-*/
-	
-	/*
-	//handle player col y
-	{
-		bool col = false;
-		int highestCol = 0;
-		int lowestCol = HEIGHT;
-
-		for(int x = 0; x < player.size.x; x++){
-			for(int y = 0; y < player.size.y; y++){
-				
-				Vec2f pos = getVec2f(player.pos.x + x, player.pos.y + y);
-
-				int index = getBufferIndex(pos.x, pos.y);
-
-				if(checkPixelEquals(staticParticlesBuffer[index], rockColor)
-				|| collisionBuffer[index].index != -1){
-					col = true;
-
-					if(pos.y > highestCol){
-						highestCol = pos.y;
-					}
-					if(pos.y < lowestCol){
-						lowestCol = pos.y;
-					}
-
-				}
-
+			if(checkPixelEquals(staticParticlesBuffer[index], rockColor)
+			|| collisionBuffer[index].ID != particle_p->ID
+			&& collisionBuffer[index].ID != -1){
+				printf("STILL COL AFTER Y FIX!\n");
+				//Vec2f_log(particle_p->pos);
+				//printf("particle: %i\n", particle_p->ID);
+				//printf("buffer: %i\n", collisionBuffer[index].ID);
 			}
 		
 		}
 
-		player.onGround = false;
-
-		if(col){
-
-			float playerCenterY = player.pos.y + player.size.y / 2;
-			float centerCol = (highestCol + lowestCol) / 2;
-
-			if(playerCenterY < centerCol){
-				player.pos.y = lowestCol - player.size.y;
-				player.onGround = true;
-			}
-			if(playerCenterY > centerCol){
-				player.pos.y = highestCol;
-			}
-
-			player.velocity.y = 0;
-
-		}
 	}
-	*/
 
-	/*
 	//move particles x
 	for(int i = 0; i < particles.length; i++){
 
 		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+
+		if((int)particle_p->pos.y < 0){
+			printf("OUB PARTICLE!\n");
+		}
+
+		{
+			int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
+
+			if(checkPixelEquals(staticParticlesBuffer[index], rockColor)){
+				printf("STILL COL AFTER Y FIX AFTER THE FACT 2!\n");
+			}
+			if(collisionBuffer[index].ID != particle_p->ID
+			&& collisionBuffer[index].ID != -1){
+				printf("buffer: %i\n", collisionBuffer[index].ID);
+				printf("particle: %i\n", particle_p->ID);
+				printf("333STILL COL AFTER Y FIX AFTER THE FACT 3!\n");
+			}
+		}
 
 		particle_p->pos.x += particle_p->velocity.x;
 
@@ -546,140 +430,138 @@ void Engine_update(float deltaTime){
 	//handle col x
 	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * WIDTH * HEIGHT);
 
-	//handle moving particles col x
-	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * WIDTH * HEIGHT);
-	{
-		for(int i = 0; i < particles.length; i++){
+	//put particles into collision buffer x
+	for(int i = 0; i < particles.length; i++){
 
-			Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
 
-			if(Particle_checkOub(particle_p)){
-				continue;
-			}
+		if(!Particle_checkOub(particle_p)){
 
 			int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-			while(collisionBuffer[index].index != -1){
-				
-				if(particle_p->velocity.x < 0){
-					particle_p->pos.x++;
-				}
-				if(particle_p->velocity.x >= 0){
-					particle_p->pos.x--;
+			collisionBuffer[index].ID = particle_p->ID;
+
+		}
+	
+	}
+
+	//check and handle if particles collides with static particles and should become static particles x
+	for(int i = 0; i < particles.length; i++){
+
+		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+
+		if(Particle_checkOub(particle_p)){
+			continue;
+		}
+
+		int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
+
+		if(checkPixelEquals(staticParticlesBuffer[index], rockColor)){
+
+			int n = 0;
+			bool oub = false;
+
+			bool foundSomething = false;
+
+			while(n < WIDTH){
+
+				n++;
+
+				index = getBufferIndex((int)particle_p->pos.x + n, particle_p->pos.y);
+
+				if((int)particle_p->pos.x + n < WIDTH
+				&& (int)particle_p->pos.x + n >= 0
+				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+					foundSomething = true;
+					break;
 				}
 
-				particle_p->velocity.x *= COLLISION_DAMPING;
+				index = getBufferIndex((int)particle_p->pos.x - n, particle_p->pos.y);
+
+				if((int)particle_p->pos.x - n < WIDTH
+				&& (int)particle_p->pos.x - n >= 0
+				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+					foundSomething = true;
+					n = -n;
+					break;
+				}
+			
+			}
+
+			particle_p->pos.x = (int)particle_p->pos.x + n;
+
+			float distanceToForcePoint = getMagVec2f(getSubVec2f(particle_p->pos, forcePoint));
+			
+			bool inForce = distanceToForcePoint < BENDING_RADIUS + BENDING_RADIUS_MARGIN && Engine_pointer.down;
+
+			if(!inForce){
 
 				index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
-				
-			}
+			
+				staticParticlesBuffer[index] = rockColor;
 
-			collisionBuffer[index].index = i;
+				Array_removeItemByIndex(&particles, i);
+				i--;
+
+				continue;
+			
+			}
 			
 		}
-		
+
 	}
 
-	//handle static particles col x
-	{
-		bool anyCols = true;
+	//check if particles collide and move them out of the way x
+	for(int i = 0; i < particles.length; i++){
 
-		while(anyCols){
+		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
 
-			anyCols = false;
+		int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-			for(int i = 0; i < particles.length; i++){
-				
-				Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+		if((int)particle_p->pos.x < 0
+		|| (int)particle_p->pos.x >= WIDTH
+		|| collisionBuffer[index].ID != -1
+		&& collisionBuffer[index].ID != particle_p->ID
+		|| checkPixelEquals(staticParticlesBuffer[index], rockColor)){
 
-				if(Particle_checkOub(particle_p)){
-					continue;
+			int n = 0;
+
+			while(n < WIDTH){
+
+				n++;
+
+				index = getBufferIndex((int)particle_p->pos.x + n, particle_p->pos.y);
+
+				if(particle_p->pos.x + n < WIDTH
+				&& particle_p->pos.x + n >= 0
+				&& collisionBuffer[index].ID == -1
+				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+					break;
 				}
 
-				bool col = false;
+				index = getBufferIndex((int)particle_p->pos.x - n, particle_p->pos.y);
 
-				int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
-
-				while(checkPixelEquals(staticParticlesBuffer[index], rockColor)){
-
-					if(particle_p->velocity.x < 0){
-						particle_p->pos.x++;
-					}
-					if(particle_p->velocity.x >= 0){
-						particle_p->pos.x--;
-					}
-
-					index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
-				
-					col = true;
-					anyCols = true;
-				
+				if(particle_p->pos.x - n < WIDTH
+				&& particle_p->pos.x - n >= 0
+				&& collisionBuffer[index].ID == -1
+				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+					n = -n;
+					break;
 				}
-
-				if(col){
-					
-					staticParticlesBuffer[index] = rockColor;
-
-					Array_removeItemByIndex(&particles, i);
-
-					i--;
-
-					continue;
-
-				}
-
+			
 			}
-		
+
+			particle_p->pos.x = (int)particle_p->pos.x + n;
+
+			particle_p->velocity.x *= COLLISION_DAMPING;
+
 		}
+
+		index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
+
+		collisionBuffer[index].ID = particle_p->ID;
+
 	}
-	
-	//handle player col x
-	{
-		bool col = false;
-		int highestCol = 0;
-		int lowestCol = WIDTH;
-
-		for(int x = 0; x < player.size.x; x++){
-			for(int y = 0; y < player.size.y; y++){
-				
-				Vec2f pos = getVec2f(player.pos.x + x, player.pos.y + y);
-
-				int index = getBufferIndex(pos.x, pos.y);
-
-				if(checkPixelEquals(staticParticlesBuffer[index], rockColor)
-				|| collisionBuffer[index].index != -1){
-					col = true;
-
-					if(pos.x > highestCol){
-						highestCol = pos.x;
-					}
-					if(pos.x < lowestCol){
-						lowestCol = pos.x;
-					}
-
-				}
-
-			}
-		
-		}
-
-		if(col){
-
-			float playerCenterX = player.pos.x + player.size.x / 2;
-			float centerCol = (highestCol + lowestCol) / 2;
-
-			if(playerCenterX < centerCol){
-				player.pos.x = lowestCol - player.size.x;
-			}
-			if(playerCenterX > centerCol){
-				player.pos.x = highestCol;
-			}
-
-			player.velocity.x = 0;
-
-		}
-	}
-	*/
 
 	//update screen texture
 	memcpy(screenBuffer, staticParticlesBuffer, sizeof(Pixel) * WIDTH * HEIGHT);

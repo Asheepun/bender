@@ -8,6 +8,7 @@
 //STRUCTS
 
 typedef struct Particle{
+	long int ID;
 	Vec2f pos;
 	Vec2f velocity;
 	Vec2f acceleration;
@@ -23,7 +24,7 @@ typedef struct Pixel{
 }Pixel;
 
 typedef struct Collision{
-	int index;
+	long int ID;
 }Collision;
 
 typedef struct Player{

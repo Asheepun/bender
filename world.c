@@ -19,9 +19,14 @@ bool checkPixelEquals(Pixel p1, Pixel p2){
 		&& p1.a == p2.a;
 }
 
+static long int currentID = 0;
+
 Particle *addParticle(Vec2f pos){
 
 	Particle *particle_p = Array_addItem(&particles);
+
+	particle_p->ID = currentID;
+	currentID++;
 
 	particle_p->pos = pos;
 
