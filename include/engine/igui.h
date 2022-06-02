@@ -9,11 +9,13 @@ typedef struct IGUI_SliderData{
 	float value;
 }IGUI_SliderData;
 
+extern bool IGUI_hoveringOverGUI;
+
 void IGUI_init();
 
 void IGUI_render(Renderer2D_Renderer *);
 
-bool IGUI_textButton_click(char *, Vec2f, int);
+bool IGUI_textButton_click(char *, Vec2f, int, bool);
 
 void IGUI_SliderData_init(IGUI_SliderData *, float);
 

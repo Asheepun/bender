@@ -1,5 +1,6 @@
 //common includes
 #include "engine/engine.h"
+#include "engine/strings.h"
 
 #include "stdio.h"
 #include "stdlib.h"
@@ -75,6 +76,8 @@ int Engine_elapsedFrames = 0;
 Engine_Key Engine_keys[ENGINE_KEYS_LENGTH];
 
 Engine_Pointer Engine_pointer;
+
+Array Engine_textInput;
 
 #ifdef __linux__
 static unsigned int OS_KEY_IDENTIFIERS[] = {
@@ -211,14 +214,20 @@ void initKeys(){
 		Engine_keys[i].upped = false;
 	
 	}
+
+	Array_init(&Engine_textInput, sizeof(char) * SMALL_STRING_SIZE);
 	
 }
 
 void resetKeys(){
+
 	for(int i = 0; i < ENGINE_KEYS_LENGTH; i++){
 		Engine_keys[i].downed = false;
 		Engine_keys[i].upped = false;
 	}
+
+	Array_clear(&Engine_textInput);
+
 }
 
 void initPointer(){
@@ -337,9 +346,15 @@ int main(){
 
 			if(xev.type == KeyPress){
 
-				//if(xev.xkey.keycode == XKeysymToKeycode(dpy, XK_Q)){
-					//quit = true;
-				//}
+				char buffer[SMALL_STRING_SIZE];
+				String_set(buffer, "", SMALL_STRING_SIZE);
+
+				XLookupString((XKeyPressedEvent *)&xev, buffer, STRING_SIZE, NULL, NULL);
+
+				if(!(strcmp(buffer, "") == 0)){
+					char *text = Array_addItem(&Engine_textInput);
+					String_set(text, buffer, SMALL_STRING_SIZE);
+				}
 
 				for(int i = 0; i < ENGINE_KEYS_LENGTH; i++){
 					if(xev.xkey.keycode == XKeysymToKeycode(dpy, Engine_keys[i].OSIdentifier)){

@@ -4,6 +4,7 @@
 #include "stdlib.h"
 #include "stdbool.h"
 #include "engine/geometry.h"
+#include "engine/array.h"
 
 //#define COLOR_BUFFER_SIZE 1920
 
@@ -111,6 +112,8 @@ static const Engine_Pixel ENGINE_COLORS[ENGINE_COLORS_LENGTH] = {
 extern Engine_Key Engine_keys[ENGINE_KEYS_LENGTH];
 
 extern Engine_Pointer Engine_pointer;
+
+extern Array Engine_textInput;
 
 //extern Engine_Pixel colorBuffers[ENGINE_COLORS_LENGTH][COLOR_BUFFER_SIZE];
 

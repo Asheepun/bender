@@ -19,7 +19,7 @@ bool checkPixelEquals(Pixel p1, Pixel p2){
 		&& p1.a == p2.a;
 }
 
-static long int currentID = 0;
+static size_t currentID = 0;
 
 Particle *addParticle(Vec2f pos){
 
@@ -37,4 +37,27 @@ Particle *addParticle(Vec2f pos){
 
 	return particle_p;
 
+}
+
+
+bool checkOubVec2f(Vec2f v){
+	if((int)v.x < 0
+	|| (int)v.y < 0
+	|| (int)v.x >= WIDTH
+	|| (int)v.y >= HEIGHT){
+		return true;
+	}
+
+	return false;
+}
+
+bool Particle_checkOub(Particle *particle_p){
+	if((int)particle_p->pos.x < 0
+	|| (int)particle_p->pos.y < 0
+	|| (int)particle_p->pos.x >= WIDTH
+	|| (int)particle_p->pos.y >= HEIGHT){
+		return true;
+	}
+
+	return false;
 }

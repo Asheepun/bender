@@ -6,9 +6,16 @@
 #include "engine/array.h"
 
 //STRUCTS
+typedef struct Sprite{
+	EntityHeader entityHeader;
+	Vec2f pos;
+	Vec2f size;
+	Renderer2D_Color color;
+	float alpha;
+}Sprite;
 
 typedef struct Particle{
-	long int ID;
+	size_t ID;
 	Vec2f pos;
 	Vec2f velocity;
 	Vec2f acceleration;
@@ -24,7 +31,7 @@ typedef struct Pixel{
 }Pixel;
 
 typedef struct Collision{
-	long int ID;
+	size_t ID;
 }Collision;
 
 typedef struct Player{
@@ -35,12 +42,15 @@ typedef struct Player{
 	float walkForce;
 	float jumpForce;
 	bool onGround;
+	bool collidedWithMovingParticle;
+	bool collidedWithStaticParticle;
 }Player;
 
 //GLOBAL VARIABLES
 
 static Pixel backgroundColor = { 0, 0, 0, 255 };
 static Pixel rockColor = { 255, 255, 255, 255 };
+static Pixel metalColor = { 128, 128, 128, 255 };
 
 static int WIDTH = 800;
 static int HEIGHT = 450;
@@ -65,6 +75,8 @@ Collision *collisionBuffer;
 Collision *clearedCollisionBuffer;
 Player player;
 
+Array sprites;
+
 //RENDER VARIABLES
 
 Renderer2D_Renderer renderer;
@@ -74,10 +86,28 @@ int screenTextureSize;
 
 //FUNCTIONS
 
+//world.c
+
 int getBufferIndex(float, float);
 
 bool checkPixelEquals(Pixel, Pixel);
 
+bool checkOubVec2f(Vec2f);
+
 Particle *addParticle(Vec2f);
+
+bool Particle_checkOub(Particle *);
+
+//levelState.c
+
+void initLevelState();
+
+void levelState();
+
+//editorState.c
+
+void initEditorState();
+
+void editorState();
 
 #endif

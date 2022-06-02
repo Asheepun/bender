@@ -26,12 +26,16 @@ typedef struct Slider{
 	Vec2f pos;
 	Vec2f size;
 	float value;
+	Renderer2D_Color color;
 }Slider;
+
+bool IGUI_hoveringOverGUI = false;
 
 Renderer2D_Color textColor = { 0.0, 0.0, 0.0 };
 Renderer2D_Color buttonColor = { 0.8, 0.8, 0.5 };
 
 Renderer2D_Color buttonColorHover = { 0.7, 0.7, 0.6 };
+Renderer2D_Color buttonColorSelected = { 0.6, 0.6, 0.5 };
 
 Array textButtons;
 Array sliders;
@@ -94,7 +98,7 @@ void IGUI_render(Renderer2D_Renderer *renderer_p){
 
 		Renderer2D_beginRectangle(renderer_p, slider_p->pos.x, slider_p->pos.y, slider_p->size.x, slider_p->size.y);
 
-		Renderer2D_supplyUniform(renderer_p, &buttonColor, "color", RENDERER2D_UNIFORM_TYPE_COLOR);
+		Renderer2D_supplyUniform(renderer_p, &slider_p->color, "color", RENDERER2D_UNIFORM_TYPE_COLOR);
 
 		Renderer2D_supplyUniform(renderer_p, &alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
 
@@ -104,7 +108,7 @@ void IGUI_render(Renderer2D_Renderer *renderer_p){
 
 		Renderer2D_beginRectangle(renderer_p, knobX, knobY, knobWidth, knobHeight);
 
-		Renderer2D_supplyUniform(renderer_p, &buttonColor, "color", RENDERER2D_UNIFORM_TYPE_COLOR);
+		Renderer2D_supplyUniform(renderer_p, &slider_p->color, "color", RENDERER2D_UNIFORM_TYPE_COLOR);
 
 		Renderer2D_supplyUniform(renderer_p, &alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
 
@@ -114,6 +118,8 @@ void IGUI_render(Renderer2D_Renderer *renderer_p){
 
 	Array_clear(&textButtons);
 	Array_clear(&sliders);
+
+	IGUI_hoveringOverGUI = false;
 
 }
 
@@ -128,7 +134,7 @@ bool checkPointInRect(Vec2f point, Vec2f rectPos, Vec2f rectSize){
 
 }
 
-bool IGUI_textButton_click(char *text, Vec2f pos, int fontSize){
+bool IGUI_textButton_click(char *text, Vec2f pos, int fontSize, bool selected){
 
 	TextButton *textButton_p = Array_addItem(&textButtons);
 
@@ -159,9 +165,15 @@ bool IGUI_textButton_click(char *text, Vec2f pos, int fontSize){
 	//check status
 	if(checkPointInRect(Engine_pointer.pos, textButton_p->pos, textButton_p->size)){
 		hover = true;
+		IGUI_hoveringOverGUI = true;
 	}
 	if(checkPointInRect(Engine_pointer.lastDownedPos, textButton_p->pos, textButton_p->size)){
 		hasBeenDowned = true;
+		IGUI_hoveringOverGUI = true;
+	}
+
+	if(selected){
+		textButton_p->buttonColor = buttonColorSelected;
 	}
 
 	if(hover){
@@ -190,6 +202,8 @@ void IGUI_slider(Vec2f pos, IGUI_SliderData *sliderData_p){
 	
 	slider_p->size = getVec2f(150, 10);
 
+	slider_p->color = buttonColor;
+
 	//check status
 
 	bool hover = false;
@@ -200,12 +214,18 @@ void IGUI_slider(Vec2f pos, IGUI_SliderData *sliderData_p){
 	//check status
 	if(checkPointInRect(Engine_pointer.pos, slider_p->pos, slider_p->size)){
 		hover = true;
+		IGUI_hoveringOverGUI = true;
 	}
 	if(checkPointInRect(Engine_pointer.lastDownedPos, slider_p->pos, slider_p->size)){
 		hasBeenDowned = true;
+		IGUI_hoveringOverGUI = true;
 	}
 	if(Engine_pointer.pos.x > slider_p->pos.x && Engine_pointer.pos.x < slider_p->pos.x + slider_p->size.x){
 		hoverX = true;
+	}
+
+	if(hover){
+		slider_p->color = buttonColorHover;
 	}
 
 	if(hasBeenDowned
@@ -221,6 +241,8 @@ void IGUI_slider(Vec2f pos, IGUI_SliderData *sliderData_p){
 		if(Engine_pointer.pos.x < slider_p->pos.x){
 			sliderData_p->value = 0.0;
 		}
+
+		slider_p->color = buttonColorHover;
 
 	}
 
