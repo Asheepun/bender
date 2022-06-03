@@ -9,6 +9,12 @@ typedef struct IGUI_SliderData{
 	float value;
 }IGUI_SliderData;
 
+typedef struct IGUI_TextInputData{
+	char text[STRING_SIZE];
+	int cursorPosition;
+	bool focused;
+}IGUI_TextInputData;
+
 extern bool IGUI_hoveringOverGUI;
 
 void IGUI_init();
@@ -20,5 +26,9 @@ bool IGUI_textButton_click(char *, Vec2f, int, bool);
 void IGUI_SliderData_init(IGUI_SliderData *, float);
 
 void IGUI_slider(Vec2f, IGUI_SliderData *);
+
+void IGUI_TextInputData_init(IGUI_TextInputData *, char *, int);
+
+void IGUI_textInput(Vec2f, IGUI_TextInputData *);
 
 #endif

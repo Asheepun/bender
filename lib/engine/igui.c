@@ -29,6 +29,15 @@ typedef struct Slider{
 	Renderer2D_Color color;
 }Slider;
 
+typedef struct TextInput{
+	Vec2f pos;
+	Vec2f size;
+	Renderer2D_Color color;
+	char text[STRING_SIZE];
+	int cursorPosition;
+	bool focused;
+}TextInput;
+
 bool IGUI_hoveringOverGUI = false;
 
 Renderer2D_Color textColor = { 0.0, 0.0, 0.0 };
@@ -39,6 +48,7 @@ Renderer2D_Color buttonColorSelected = { 0.6, 0.6, 0.5 };
 
 Array textButtons;
 Array sliders;
+Array textInputs;
 
 Font font;
 
@@ -46,6 +56,7 @@ void IGUI_init(){
 	
 	Array_init(&textButtons, sizeof(TextButton));
 	Array_init(&sliders, sizeof(Slider));
+	Array_init(&textInputs, sizeof(TextInput));
 
 	font = getFont("assets/fonts/times.ttf", 100);
 
@@ -60,27 +71,9 @@ void IGUI_render(Renderer2D_Renderer *renderer_p){
 
 		TextButton *textButton_p = Array_getItemPointerByIndex(&textButtons, i);
 
-		//draw button
-		Renderer2D_setShaderProgram(renderer_p, renderer_p->colorShaderProgram);
+		Renderer2D_drawColoredRectangle(renderer_p, textButton_p->pos.x, textButton_p->pos.y, textButton_p->size.x, textButton_p->size.y, textButton_p->buttonColor, alpha);
 
-		Renderer2D_beginRectangle(renderer_p, textButton_p->pos.x, textButton_p->pos.y, textButton_p->size.x, textButton_p->size.y);
-
-		Renderer2D_supplyUniform(renderer_p, &textButton_p->buttonColor, "color", RENDERER2D_UNIFORM_TYPE_COLOR);
-
-		Renderer2D_supplyUniform(renderer_p, &alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
-
-		Renderer2D_drawRectangle(renderer_p);
-
-		//draw text
-		Renderer2D_setShaderProgram(renderer_p, renderer_p->textureShaderProgram);
-
-		Renderer2D_beginText(renderer_p, textButton_p->text, textButton_p->pos.x + textButton_p->paddingX, textButton_p->pos.y, textButton_p->fontSize, font);
-
-		Renderer2D_supplyUniform(renderer_p, &color, "color", RENDERER2D_UNIFORM_TYPE_COLOR);
-
-		Renderer2D_supplyUniform(renderer_p, &alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
-
-		Renderer2D_drawRectangle(renderer_p);
+		Renderer2D_drawText(renderer_p, textButton_p->text, textButton_p->pos.x + textButton_p->paddingX, textButton_p->pos.y, textButton_p->fontSize, font, alpha);
 	
 	}
 
@@ -94,30 +87,26 @@ void IGUI_render(Renderer2D_Renderer *renderer_p){
 
 		int knobX = slider_p->pos.x + (float)(slider_p->size.x - knobWidth) * slider_p->value;
 
-		Renderer2D_setShaderProgram(renderer_p, renderer_p->colorShaderProgram);
+		Renderer2D_drawColoredRectangle(renderer_p, slider_p->pos.x, slider_p->pos.y, slider_p->size.x, slider_p->size.y, slider_p->color, alpha);
 
-		Renderer2D_beginRectangle(renderer_p, slider_p->pos.x, slider_p->pos.y, slider_p->size.x, slider_p->size.y);
-
-		Renderer2D_supplyUniform(renderer_p, &slider_p->color, "color", RENDERER2D_UNIFORM_TYPE_COLOR);
-
-		Renderer2D_supplyUniform(renderer_p, &alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
-
-		Renderer2D_drawRectangle(renderer_p);
-
-		Renderer2D_setShaderProgram(renderer_p, renderer_p->colorShaderProgram);
-
-		Renderer2D_beginRectangle(renderer_p, knobX, knobY, knobWidth, knobHeight);
-
-		Renderer2D_supplyUniform(renderer_p, &slider_p->color, "color", RENDERER2D_UNIFORM_TYPE_COLOR);
-
-		Renderer2D_supplyUniform(renderer_p, &alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
-
-		Renderer2D_drawRectangle(renderer_p);
+		Renderer2D_drawColoredRectangle(renderer_p, knobX, knobY, knobWidth, knobHeight, slider_p->color, alpha);
 	
+	}
+
+	//render text inputs
+	for(int i = 0; i < textInputs.length; i++){
+		
+		TextInput *textInput_p = Array_getItemPointerByIndex(&textInputs, i);
+
+		Renderer2D_drawColoredRectangle(renderer_p, textInput_p->pos.x, textInput_p->pos.y, textInput_p->size.x, textInput_p->size.y, textInput_p->color, alpha);
+
+		Renderer2D_drawText(renderer_p, textInput_p->text, textInput_p->pos.x, textInput_p->pos.y, textInput_p->size.y, font, alpha);
+
 	}
 
 	Array_clear(&textButtons);
 	Array_clear(&sliders);
+	Array_clear(&textInputs);
 
 	IGUI_hoveringOverGUI = false;
 
@@ -248,5 +237,74 @@ void IGUI_slider(Vec2f pos, IGUI_SliderData *sliderData_p){
 
 	//set value
 	slider_p->value = sliderData_p->value;
+
+}
+
+void IGUI_TextInputData_init(IGUI_TextInputData *textInputData_p, char *startText, int startTextLength){
+
+	String_set(textInputData_p->text, "", STRING_SIZE);
+
+	if(startText != NULL){
+		String_set(textInputData_p->text, startText, startTextLength);
+	
+	}
+
+	textInputData_p->cursorPosition = 0;
+	textInputData_p->focused = false;
+
+}
+
+void IGUI_textInput(Vec2f pos, IGUI_TextInputData *textInputData_p){
+
+	TextInput *textInput_p = Array_addItem(&textInputs);
+
+	textInput_p->pos = pos;
+	textInput_p->size = getVec2f(150, 25);
+
+	//textInput_p->color = Renderer2D_getColor(1.0, 1.0, 1.0);
+	textInput_p->color = buttonColor;
+
+	if(Engine_pointer.downed){
+
+		if(checkPointInRect(Engine_pointer.pos, textInput_p->pos, textInput_p->size)){
+			textInputData_p->focused = true;
+		}else{
+			textInputData_p->focused = false;
+		}
+
+	}
+
+	if(checkPointInRect(Engine_pointer.pos, textInput_p->pos, textInput_p->size)){
+		textInput_p->color = buttonColorHover;
+	}
+
+	textInput_p->focused = textInputData_p->focused;
+	textInput_p->cursorPosition = textInputData_p->cursorPosition;
+
+	if(textInputData_p->focused){
+
+		for(int i = 0; i < Engine_textInput.length; i++){
+
+			char *text = Array_getItemPointerByIndex(&Engine_textInput, i);
+
+			if(text[0] == 8){//handle backspace
+				if(strlen(textInputData_p->text) > 0){
+					textInputData_p->text[strlen(textInputData_p->text) - 1] = *"\0";
+				}
+			}else{
+				String_append(textInputData_p->text, text);
+			}
+		
+		}
+
+		textInput_p->color = buttonColorSelected;
+
+	}
+
+	String_set(textInput_p->text, textInputData_p->text, STRING_SIZE);
+
+	//String_set(textInput_p->text, "hello", STRING_SIZE);
+
+	textInput_p->cursorPosition = 0;
 
 }

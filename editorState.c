@@ -30,6 +30,7 @@ int drawingRadius = 20;
 bool displayGUI = true;
 
 IGUI_SliderData drawingRadiusSlider;
+IGUI_TextInputData levelTextInput;
 
 enum DrawingTools currentDrawingTool = DRAWING_TOOL_RECTANGLE;
 
@@ -51,6 +52,8 @@ void initEditorState(){
 	}
 
 	IGUI_SliderData_init(&drawingRadiusSlider, 0.5);
+
+	IGUI_TextInputData_init(&levelTextInput, "Untitled", strlen("Untitled"));
 
 	{
 		Sprite *sprite_p = Array_addItem(&sprites);
@@ -130,8 +133,13 @@ void editorState(){
 		posY += 30;
 
 		if(IGUI_textButton_click("Save Level", getVec2f(posX, posY), 20, false)){
+
+			char path[STRING_SIZE];
+			String_set(path, "levels/", STRING_SIZE);
+			String_append(path, levelTextInput.text);
+			String_append(path, ".level");
 			
-			writeDataToFile("levels/level1.level", (char *)staticParticlesBuffer, sizeof(Pixel) * WIDTH * HEIGHT);
+			writeDataToFile(path, (char *)staticParticlesBuffer, sizeof(Pixel) * WIDTH * HEIGHT);
 
 		}
 		posY += 30;
@@ -170,7 +178,7 @@ void editorState(){
 
 					if(IGUI_textButton_click(levelName, getVec2f(posX, posY), 20, false)){
 
-						//String_set(currentLevel, levelName, STRING_SIZE);
+						String_set(levelTextInput.text, levelName, STRING_SIZE);
 
 						long int fileSize;
 						char *data = getFileData_mustFree(path, &fileSize);
@@ -192,6 +200,8 @@ void editorState(){
 		&& !IGUI_hoveringOverGUI){
 			openingLevel = false;
 		}
+
+		IGUI_textInput(getVec2f(380, 10), &levelTextInput);
 		
 	}
 

@@ -323,3 +323,31 @@ Renderer2D_Color Renderer2D_getColor(float r, float g, float b){
 	Renderer2D_Color color = { r, g, b };
 	return color;
 }
+
+void Renderer2D_drawColoredRectangle(Renderer2D_Renderer *renderer_p, float x, float y, float w, float h, Renderer2D_Color color, float alpha){
+
+	Renderer2D_setShaderProgram(renderer_p, renderer_p->colorShaderProgram);
+
+	Renderer2D_beginRectangle(renderer_p, x, y, w, h);
+
+	Renderer2D_supplyUniform(renderer_p, &color, "color", RENDERER2D_UNIFORM_TYPE_COLOR);
+
+	Renderer2D_supplyUniform(renderer_p, &alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
+
+	Renderer2D_drawRectangle(renderer_p);
+
+}
+
+void Renderer2D_drawText(Renderer2D_Renderer *renderer_p, char *text, float x, float y, int fontSize, Font font, float alpha){
+
+	Renderer2D_setShaderProgram(renderer_p, renderer_p->textureShaderProgram);
+
+	Renderer2D_beginText(renderer_p, text, x, y, fontSize, font);
+
+	//Renderer2D_supplyUniform(renderer_p, &color, "color", RENDERER2D_UNIFORM_TYPE_COLOR);
+
+	Renderer2D_supplyUniform(renderer_p, &alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
+
+	Renderer2D_drawRectangle(renderer_p);
+
+}

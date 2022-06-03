@@ -95,4 +95,10 @@ void Renderer2D_drawRectangle(Renderer2D_Renderer *);
 
 Renderer2D_Color Renderer2D_getColor(float, float, float);
 
+//SIMPLE DRAWING FUNCTIONS
+
+void Renderer2D_drawColoredRectangle(Renderer2D_Renderer *, float, float, float, float, Renderer2D_Color, float);
+
+void Renderer2D_drawText(Renderer2D_Renderer *, char *, float, float, int, Font, float);
+
 #endif
