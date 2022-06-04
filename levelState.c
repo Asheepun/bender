@@ -14,12 +14,15 @@ Vec2f forcePoint = { 0, 0 };
 void initLevelState(){
 
 	//restore world
-	for(int i = 0; i < WIDTH * HEIGHT; i++){
+	for(int i = 0; i < MAX_WIDTH * MAX_HEIGHT; i++){
 		clearedCollisionBuffer[i].ID = -1;
 	}
 
-	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * WIDTH * HEIGHT);
+	Array_clear(&particles);
 
+	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
+
+	/*
 	//init player
 	{
 		player.pos = getVec2f(600, 100);
@@ -32,7 +35,9 @@ void initLevelState(){
 		player.collidedWithMovingParticle = false;
 		player.collidedWithStaticParticle = false;
 	}
+	*/
 
+	/*
 	//add obstacles
 	for(int x = 0; x < 200; x++){
 		for(int y = 0; y < 100; y++){
@@ -44,7 +49,7 @@ void initLevelState(){
 		}
 	}
 
-	for(int i = 0; i < WIDTH * HEIGHT; i++){
+	for(int i = 0; i < MAX_WIDTH * MAX_HEIGHT; i++){
 		staticParticlesBuffer[i] = backgroundColor;
 	}
 
@@ -67,10 +72,16 @@ void initLevelState(){
 
 		}
 	}
+	*/
 
 }
 
 void levelState(){
+
+	if(Engine_keys[ENGINE_KEY_G].downed){
+		initEditorState();
+		currentGameState = GAME_STATE_LEVEL_EDITOR;
+	}
 
 	//control player
 	{
@@ -199,7 +210,7 @@ void levelState(){
 	//handle col y
 	
 	//put particles into collision buffer y
-	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * WIDTH * HEIGHT);
+	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
 
 	for(int i = 0; i < particles.length; i++){
 
@@ -456,7 +467,7 @@ void levelState(){
 	//handle col x
 	
 	//put particles into collision buffer x
-	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * WIDTH * HEIGHT);
+	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
 
 	for(int i = 0; i < particles.length; i++){
 
@@ -490,13 +501,13 @@ void levelState(){
 
 			bool foundSomething = false;
 
-			while(n < WIDTH){
+			while(n < levelWidth){
 
 				n++;
 
 				index = getBufferIndex((int)particle_p->pos.x + n, particle_p->pos.y);
 
-				if((int)particle_p->pos.x + n < WIDTH
+				if((int)particle_p->pos.x + n < levelWidth
 				&& (int)particle_p->pos.x + n >= 0
 				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
 					foundSomething = true;
@@ -505,7 +516,7 @@ void levelState(){
 
 				index = getBufferIndex((int)particle_p->pos.x - n, particle_p->pos.y);
 
-				if((int)particle_p->pos.x - n < WIDTH
+				if((int)particle_p->pos.x - n < levelWidth
 				&& (int)particle_p->pos.x - n >= 0
 				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
 					foundSomething = true;
@@ -546,20 +557,20 @@ void levelState(){
 		int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
 		if((int)particle_p->pos.x < 0
-		|| (int)particle_p->pos.x >= WIDTH
+		|| (int)particle_p->pos.x >= levelWidth
 		|| collisionBuffer[index].ID != -1
 		&& collisionBuffer[index].ID != particle_p->ID
 		|| !checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
 
 			int n = 0;
 
-			while(n < WIDTH){
+			while(n < levelWidth){
 
 				n++;
 
 				index = getBufferIndex((int)particle_p->pos.x + n, particle_p->pos.y);
 
-				if(particle_p->pos.x + n < WIDTH
+				if(particle_p->pos.x + n < levelWidth
 				&& particle_p->pos.x + n >= 0
 				&& collisionBuffer[index].ID == -1
 				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
@@ -568,7 +579,7 @@ void levelState(){
 
 				index = getBufferIndex((int)particle_p->pos.x - n, particle_p->pos.y);
 
-				if(particle_p->pos.x - n < WIDTH
+				if(particle_p->pos.x - n < levelWidth
 				&& particle_p->pos.x - n >= 0
 				&& collisionBuffer[index].ID == -1
 				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
@@ -657,7 +668,7 @@ void levelState(){
 				collisionBuffer[index].ID = -1;
 
 				if(x > player.size.x / 2){
-					for(int i = (int)player.pos.x + x; i < WIDTH; i++){
+					for(int i = (int)player.pos.x + x; i < levelWidth; i++){
 
 						int index = getBufferIndex((int)i, (int)player.pos.y + y);
 
@@ -670,7 +681,7 @@ void levelState(){
 							break;
 						}
 
-						if(i == WIDTH - 1){
+						if(i == levelWidth - 1){
 							Array_removeItemByID(&particles, collisionBuffer[index].ID);
 						}
 
@@ -704,7 +715,7 @@ void levelState(){
 	//move and collide player
 	
 	//put particles into collision buffer
-	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * WIDTH * HEIGHT);
+	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
 
 	for(int i = 0; i < particles.length; i++){
 
@@ -784,14 +795,14 @@ void levelState(){
 	}
 
 	//update screen texture
-	memcpy(screenBuffer, staticParticlesBuffer, sizeof(Pixel) * WIDTH * HEIGHT);
+	memcpy(screenBuffer, staticParticlesBuffer, sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
 
 	for(int i = 0; i < particles.length; i++){
 
 		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
 
-		if(particle_p->pos.x >= WIDTH
-		|| particle_p->pos.y >= HEIGHT
+		if(particle_p->pos.x >= levelWidth
+		|| particle_p->pos.y >= levelHeight
 		|| particle_p->pos.x < 0
 		|| particle_p->pos.y < 0){
 			continue;
@@ -805,7 +816,7 @@ void levelState(){
 
 	Renderer2D_Texture_free(&screenTexture);
 
-	Renderer2D_Texture_init(&screenTexture, "screen-texture", (unsigned char *)screenBuffer, WIDTH, HEIGHT);
+	Renderer2D_Texture_init(&screenTexture, "screen-texture", (unsigned char *)screenBuffer, MAX_WIDTH, MAX_HEIGHT);
 
 
 }

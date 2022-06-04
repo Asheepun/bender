@@ -5,6 +5,15 @@
 #include "engine/renderer2d.h"
 #include "engine/array.h"
 
+#define MAX_WIDTH 800 * 4
+#define MAX_HEIGHT 450
+
+//ENUMS
+enum GameState{
+	GAME_STATE_LEVEL,
+	GAME_STATE_LEVEL_EDITOR,
+};
+
 //STRUCTS
 typedef struct Sprite{
 	EntityHeader entityHeader;
@@ -46,6 +55,12 @@ typedef struct Player{
 	bool collidedWithStaticParticle;
 }Player;
 
+typedef struct Level{
+	Pixel staticParticlesBuffer[MAX_WIDTH * MAX_HEIGHT];
+	Vec2f playerPos;
+	char name[STRING_SIZE];
+}Level;
+
 //GLOBAL VARIABLES
 
 static Pixel backgroundColor = { 0, 0, 0, 255 };
@@ -54,6 +69,9 @@ static Pixel metalColor = { 128, 128, 128, 255 };
 
 static int WIDTH = 800;
 static int HEIGHT = 450;
+
+static int levelWidth = 800 * 4;
+static int levelHeight = 450;
 
 static float BENDING_RADIUS = 25;
 static float BENDING_RADIUS_MARGIN = 10;
@@ -67,6 +85,10 @@ static float PLAYER_JUMP_ACCELERATION = 4.5;
 static float PLAYER_GRAVITY = 0.15;
 static float PLAYER_SIDE_ACCELERATION = 0.35;
 static float PLAYER_SIDE_RESITANCE = 0.90;
+
+enum GameState currentGameState;
+
+Level currentLevel;
 
 //WORLD VARIABLES
 Array particles;
@@ -97,6 +119,12 @@ bool checkOubVec2f(Vec2f);
 Particle *addParticle(Vec2f);
 
 bool Particle_checkOub(Particle *);
+
+void initPlayer(Vec2f);
+
+void Level_init(Level *);
+
+void Level_load(Level *);
 
 //levelState.c
 

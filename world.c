@@ -9,7 +9,7 @@
 #include "string.h"
 
 int getBufferIndex(float x, float y){
-	return (int)y * WIDTH + (int)x;
+	return (int)y * MAX_WIDTH + (int)x;
 }
 
 bool checkPixelEquals(Pixel p1, Pixel p2){
@@ -43,8 +43,8 @@ Particle *addParticle(Vec2f pos){
 bool checkOubVec2f(Vec2f v){
 	if((int)v.x < 0
 	|| (int)v.y < 0
-	|| (int)v.x >= WIDTH
-	|| (int)v.y >= HEIGHT){
+	|| (int)v.x >= levelWidth
+	|| (int)v.y >= levelHeight){
 		return true;
 	}
 
@@ -54,10 +54,44 @@ bool checkOubVec2f(Vec2f v){
 bool Particle_checkOub(Particle *particle_p){
 	if((int)particle_p->pos.x < 0
 	|| (int)particle_p->pos.y < 0
-	|| (int)particle_p->pos.x >= WIDTH
-	|| (int)particle_p->pos.y >= HEIGHT){
+	|| (int)particle_p->pos.x >= levelWidth
+	|| (int)particle_p->pos.y >= levelHeight){
 		return true;
 	}
 
 	return false;
+}
+
+void initPlayer(Vec2f pos){
+
+	player.pos = pos;
+	player.size = getVec2f(15, 20);
+	player.velocity = getVec2f(0, 0);
+	player.acceleration = getVec2f(0, 0);
+	player.walkForce = 0;
+	player.jumpForce = 0;
+	player.onGround = false;
+	player.collidedWithMovingParticle = false;
+	player.collidedWithStaticParticle = false;
+
+}
+
+void Level_init(Level *level_p){
+
+	for(int i = 0; i < MAX_WIDTH * MAX_HEIGHT; i++){
+		level_p->staticParticlesBuffer[i] = backgroundColor;
+	}
+
+	level_p->playerPos = getVec2f(-100, -100);
+
+	String_set(level_p->name, "Untitled", STRING_SIZE);
+
+}
+
+void Level_load(Level *level_p){
+
+	memcpy(staticParticlesBuffer, level_p->staticParticlesBuffer, sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
+
+	initPlayer(level_p->playerPos);
+
 }

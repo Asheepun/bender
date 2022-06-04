@@ -41,19 +41,17 @@ size_t rectangleSpriteID;
 
 Pixel currentColor;
 
-char currentLevel[STRING_SIZE];
-
 bool openingLevel = false;
 
 void initEditorState(){
 
-	for(int i = 0; i < WIDTH * HEIGHT; i++){
-		staticParticlesBuffer[i] = backgroundColor;
-	}
+	//for(int i = 0; i < MAX_WIDTH * MAX_HEIGHT; i++){
+		//staticParticlesBuffer[i] = backgroundColor;
+	//}
 
 	IGUI_SliderData_init(&drawingRadiusSlider, 0.5);
 
-	IGUI_TextInputData_init(&levelTextInput, "Untitled", strlen("Untitled"));
+	IGUI_TextInputData_init(&levelTextInput, currentLevel.name, strlen("Untitled"));
 
 	{
 		Sprite *sprite_p = Array_addItem(&sprites);
@@ -70,11 +68,26 @@ void initEditorState(){
 
 	currentColor = rockColor;
 
-	String_set(currentLevel, "", STRING_SIZE);
-
 }
 
 void editorState(){
+
+	//move offset
+	if(Engine_keys[ENGINE_KEY_D].down){
+		renderer.offset.x -= 3;
+	}
+	if(Engine_keys[ENGINE_KEY_A].down){
+		renderer.offset.x += 3;
+	}
+
+	if(renderer.offset.x > 0){
+		renderer.offset.x = 0;
+	}
+	if(renderer.offset.x < -MAX_WIDTH + WIDTH){
+		renderer.offset.x = -MAX_WIDTH + WIDTH;
+	}
+
+	Vec2f offsetPointerPos = getSubVec2f(Engine_pointer.pos, renderer.offset);
 
 	//GUI
 	if(Engine_keys[ENGINE_KEY_H].downed){
@@ -86,20 +99,23 @@ void editorState(){
 		int posX = 30;
 		int posY = 10;
 
-		if(IGUI_textButton_click("Rock", getVec2f(posX, posY), 20, checkPixelEquals(currentColor, rockColor))){
-			currentColor = rockColor;
-		}
-		posY += 30;
+		if(currentDrawingTool == DRAWING_TOOL_PEN
+		|| currentDrawingTool == DRAWING_TOOL_RECTANGLE){
+			if(IGUI_textButton_click("Rock", getVec2f(posX, posY), 20, checkPixelEquals(currentColor, rockColor))){
+				currentColor = rockColor;
+			}
+			posY += 30;
 
-		if(IGUI_textButton_click("Metal", getVec2f(posX, posY), 20, checkPixelEquals(currentColor, metalColor))){
-			currentColor = metalColor;
-		}
-		posY += 30;
+			if(IGUI_textButton_click("Metal", getVec2f(posX, posY), 20, checkPixelEquals(currentColor, metalColor))){
+				currentColor = metalColor;
+			}
+			posY += 30;
 
-		if(IGUI_textButton_click("Air", getVec2f(posX, posY), 20, checkPixelEquals(currentColor, backgroundColor))){
-			currentColor = backgroundColor;
+			if(IGUI_textButton_click("Air", getVec2f(posX, posY), 20, checkPixelEquals(currentColor, backgroundColor))){
+				currentColor = backgroundColor;
+			}
+			posY += 30;
 		}
-		posY += 30;
 
 		posX = 130;
 		posY = 10;
@@ -113,6 +129,13 @@ void editorState(){
 			currentDrawingTool = DRAWING_TOOL_RECTANGLE;
 		}
 
+		posX += 50;
+
+		if(IGUI_textButton_click("Player", getVec2f(posX, posY), 20, currentDrawingTool == DRAWING_TOOL_PLAYER)){
+			currentDrawingTool = DRAWING_TOOL_PLAYER;
+		}
+
+
 		if(currentDrawingTool == DRAWING_TOOL_PEN){
 			IGUI_slider(getVec2f(130, 50), &drawingRadiusSlider);
 		}
@@ -122,7 +145,17 @@ void editorState(){
 		posX = WIDTH - 130;
 		posY = 10;
 
+		if(IGUI_textButton_click("Play Level", getVec2f(posX, posY), 20, false)){
+			initLevelState();
+			currentGameState = GAME_STATE_LEVEL;	
+		}
+		posY += 30;
+
 		if(IGUI_textButton_click("New Level", getVec2f(posX, posY), 20, false)){
+
+			Level_init(&currentLevel);
+
+			String_set(levelTextInput.text, currentLevel.name, STRING_SIZE);
 
 		}
 		posY += 30;
@@ -139,7 +172,7 @@ void editorState(){
 			String_append(path, levelTextInput.text);
 			String_append(path, ".level");
 			
-			writeDataToFile(path, (char *)staticParticlesBuffer, sizeof(Pixel) * WIDTH * HEIGHT);
+			writeDataToFile(path, (char *)&currentLevel, sizeof(Level));
 
 		}
 		posY += 30;
@@ -183,7 +216,9 @@ void editorState(){
 						long int fileSize;
 						char *data = getFileData_mustFree(path, &fileSize);
 
-						memcpy(staticParticlesBuffer, data, sizeof(Pixel) * WIDTH * HEIGHT);
+						memcpy(&currentLevel, data, sizeof(Level));
+
+						String_set(levelTextInput.text, currentLevel.name, STRING_SIZE);
 
 						free(data);
 
@@ -213,14 +248,14 @@ void editorState(){
 		for(int x = 0; x < drawingRadius * 2; x++){
 			for(int y = 0; y < drawingRadius * 2; y++){
 
-				Vec2f pos = getVec2f(Engine_pointer.pos.x - drawingRadius + x, Engine_pointer.pos.y - drawingRadius + y);
+				Vec2f pos = getVec2f(offsetPointerPos.x - drawingRadius + x, offsetPointerPos.y - drawingRadius + y);
 
 				int index = getBufferIndex(pos.x, pos.y);
 
 				if(!checkOubVec2f(pos)
-				&& getMagVec2f(getSubVec2f(pos, Engine_pointer.pos)) < drawingRadius){
+				&& getMagVec2f(getSubVec2f(pos, offsetPointerPos)) < drawingRadius){
 					
-					staticParticlesBuffer[index] = currentColor;
+					currentLevel.staticParticlesBuffer[index] = currentColor;
 
 				}
 
@@ -240,13 +275,13 @@ void editorState(){
 	
 		if(Engine_pointer.downed
 		&& !IGUI_hoveringOverGUI){
-			rectanglePos = Engine_pointer.pos;
+			rectanglePos = offsetPointerPos;
 			holdingRectangle = true;
 		}
 
 		rectangleSize = getVec2f(0, 0);
 		if(holdingRectangle){
-			rectangleSize = getSubVec2f(Engine_pointer.pos, rectanglePos);
+			rectangleSize = getSubVec2f(offsetPointerPos, rectanglePos);
 			sprite_p->alpha = 0.5;
 		}
 
@@ -269,7 +304,7 @@ void editorState(){
 					int index = getBufferIndex(pos.x, pos.y);
 
 					if(!checkOubVec2f(pos)){
-						staticParticlesBuffer[index] = currentColor;
+						currentLevel.staticParticlesBuffer[index] = currentColor;
 					}
 				
 				}
@@ -284,12 +319,25 @@ void editorState(){
 		
 	}
 
+	if(currentDrawingTool == DRAWING_TOOL_PLAYER
+	&& !IGUI_hoveringOverGUI){
+
+		if(Engine_pointer.down){
+			currentLevel.playerPos = offsetPointerPos;
+		}
+	
+	}
+
+	String_set(currentLevel.name, levelTextInput.text, STRING_SIZE);
+
+	Level_load(&currentLevel);
+
 	//update screen texture
-	memcpy(screenBuffer, staticParticlesBuffer, sizeof(Pixel) * WIDTH * HEIGHT);
+	memcpy(screenBuffer, staticParticlesBuffer, sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
 
 	Renderer2D_Texture_free(&screenTexture);
 
-	Renderer2D_Texture_init(&screenTexture, "screen-texture", (unsigned char *)screenBuffer, WIDTH, HEIGHT);
+	Renderer2D_Texture_init(&screenTexture, "screen-texture", (unsigned char *)screenBuffer, MAX_WIDTH, MAX_HEIGHT);
 
 	/*
 	for(int i = 0; i < Engine_textInput.length; i++){

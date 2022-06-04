@@ -22,17 +22,21 @@ void Engine_start(){
 	IGUI_init();
 
 	//init screen rendering
-	screenBuffer = malloc(sizeof(Pixel) * WIDTH * HEIGHT);
+	screenBuffer = malloc(sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
 
-	Renderer2D_Texture_init(&screenTexture, "screen-texture", (unsigned char *)screenBuffer, WIDTH, HEIGHT);
+	Renderer2D_Texture_init(&screenTexture, "screen-texture", (unsigned char *)screenBuffer, MAX_WIDTH, MAX_HEIGHT);
 
 	//init world
 	Array_init(&particles, sizeof(Particle));
-	staticParticlesBuffer = malloc(sizeof(Pixel) * WIDTH * HEIGHT);
-	collisionBuffer = malloc(sizeof(Collision) * WIDTH * HEIGHT);
-	clearedCollisionBuffer = malloc(sizeof(Collision) * WIDTH * HEIGHT);
+	staticParticlesBuffer = malloc(sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
+	collisionBuffer = malloc(sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
+	clearedCollisionBuffer = malloc(sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
+
+	Level_init(&currentLevel);
 
 	Array_init(&sprites, sizeof(Sprite));
+
+	currentGameState = GAME_STATE_LEVEL_EDITOR;
 
 	//initLevelState();
 	initEditorState();
@@ -47,8 +51,12 @@ void Engine_update(float deltaTime){
 
 	Engine_setPointerScale(Engine_clientWidth / (float)WIDTH, Engine_clientHeight / (float)HEIGHT);
 
-	//levelState();
-	editorState();
+	if(currentGameState == GAME_STATE_LEVEL){
+		levelState();
+	}
+	if(currentGameState == GAME_STATE_LEVEL_EDITOR){
+		editorState();
+	}
 
 }
 
@@ -62,7 +70,7 @@ void Engine_draw(){
 	//draw world pixels
 	Renderer2D_setShaderProgram(&renderer, renderer.textureShaderProgram);
 
-	Renderer2D_beginRectangle(&renderer, 0, 0, WIDTH, HEIGHT);
+	Renderer2D_beginRectangle(&renderer, 0, 0, MAX_WIDTH, MAX_HEIGHT);
 
 	Renderer2D_setTexture(&renderer, screenTexture);
 

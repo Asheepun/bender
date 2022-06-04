@@ -71,9 +71,9 @@ void IGUI_render(Renderer2D_Renderer *renderer_p){
 
 		TextButton *textButton_p = Array_getItemPointerByIndex(&textButtons, i);
 
-		Renderer2D_drawColoredRectangle(renderer_p, textButton_p->pos.x, textButton_p->pos.y, textButton_p->size.x, textButton_p->size.y, textButton_p->buttonColor, alpha);
+		Renderer2D_drawColoredRectangle(renderer_p, textButton_p->pos.x - renderer_p->offset.x, textButton_p->pos.y - renderer_p->offset.y, textButton_p->size.x, textButton_p->size.y, textButton_p->buttonColor, alpha);
 
-		Renderer2D_drawText(renderer_p, textButton_p->text, textButton_p->pos.x + textButton_p->paddingX, textButton_p->pos.y, textButton_p->fontSize, font, alpha);
+		Renderer2D_drawText(renderer_p, textButton_p->text, textButton_p->pos.x + textButton_p->paddingX - renderer_p->offset.x, textButton_p->pos.y - renderer_p->offset.y, textButton_p->fontSize, font, alpha);
 	
 	}
 
@@ -83,11 +83,11 @@ void IGUI_render(Renderer2D_Renderer *renderer_p){
 
 		int knobWidth = 10;
 		int knobHeight = 20;
-		int knobY = slider_p->pos.y - 5;
+		int knobY = slider_p->pos.y - 5 - renderer_p->offset.y;
 
-		int knobX = slider_p->pos.x + (float)(slider_p->size.x - knobWidth) * slider_p->value;
+		int knobX = slider_p->pos.x + (float)(slider_p->size.x - knobWidth) * slider_p->value - renderer_p->offset.x;
 
-		Renderer2D_drawColoredRectangle(renderer_p, slider_p->pos.x, slider_p->pos.y, slider_p->size.x, slider_p->size.y, slider_p->color, alpha);
+		Renderer2D_drawColoredRectangle(renderer_p, slider_p->pos.x - renderer_p->offset.x, slider_p->pos.y - renderer_p->offset.y, slider_p->size.x, slider_p->size.y, slider_p->color, alpha);
 
 		Renderer2D_drawColoredRectangle(renderer_p, knobX, knobY, knobWidth, knobHeight, slider_p->color, alpha);
 	
@@ -98,9 +98,9 @@ void IGUI_render(Renderer2D_Renderer *renderer_p){
 		
 		TextInput *textInput_p = Array_getItemPointerByIndex(&textInputs, i);
 
-		Renderer2D_drawColoredRectangle(renderer_p, textInput_p->pos.x, textInput_p->pos.y, textInput_p->size.x, textInput_p->size.y, textInput_p->color, alpha);
+		Renderer2D_drawColoredRectangle(renderer_p, textInput_p->pos.x - renderer_p->offset.x, textInput_p->pos.y - renderer_p->offset.y, textInput_p->size.x, textInput_p->size.y, textInput_p->color, alpha);
 
-		Renderer2D_drawText(renderer_p, textInput_p->text, textInput_p->pos.x, textInput_p->pos.y, textInput_p->size.y, font, alpha);
+		Renderer2D_drawText(renderer_p, textInput_p->text, textInput_p->pos.x - renderer_p->offset.x, textInput_p->pos.y - renderer_p->offset.y, textInput_p->size.y, font, alpha);
 
 	}
 
