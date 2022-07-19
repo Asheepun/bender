@@ -142,6 +142,12 @@ static float PLAYER_GRAVITY = 0.15;
 static float PLAYER_WALK_ACCELERATION = 0.35;
 static float PLAYER_WALK_RESISTANCE = 0.90;
 
+static float ENEMY_JUMP_ACCELERATION = 3.5;
+static float ENEMY_GRAVITY = 0.15;
+static float ENEMY_WALK_ACCELERATION = 0.40;
+static float ENEMY_WALK_RESISTANCE = 0.90;
+static float ENEMY_DETECTION_RANGE = 200;
+
 enum GameState currentGameState;
 
 Level currentLevel;
@@ -181,7 +187,8 @@ Particle *addParticle(Vec2f);
 
 Sprite *addSprite(Vec2f, Vec2f, Renderer2D_Color, float);
 
-//Enemy *addEnemy(Vec2f);
+Entity *addPlayer(Vec2f);
+Entity *addEnemy(Vec2f);
 
 //Body *addBody(Vec2f, Vec2f);
 

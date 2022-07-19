@@ -112,7 +112,7 @@ Body *getBodyByID(size_t ID){
 }
 */
 
-void addPlayer(Vec2f pos){
+Entity *addPlayer(Vec2f pos){
 
 	Entity *entity_p = Array_addItem(&entities);
 
@@ -123,6 +123,8 @@ void addPlayer(Vec2f pos){
 	Body_init(&entity_p->body, pos, getVec2f(15, 20));
 
 	Physics_init(&entity_p->physics);
+
+	return entity_p;
 
 }
 
@@ -166,17 +168,18 @@ void Level_load(Level *level_p){
 
 }
 
-/*
-Enemy *addEnemy(Vec2f pos){
+Entity *addEnemy(Vec2f pos){
 
-	Enemy *enemy_p = Array_addItem(&enemies);
-	
-	enemy_p->bodyID = addBody(pos, getVec2f(15, 20))->entityHeader.ID;
+	Entity *entity_p = Array_addItem(&entities);
 
-	//enemy_p->pos = pos;
-	//enemy_p->size = getVec2f(15, 20);
-	//enemy_p->velocity = getVec2f(0, 0);
-	//enemy_p->acceleration = getVec2f(0, 0);
+	entity_p->type = ENTITY_TYPE_ENEMY;
+
+	EntityHeader_init(&entity_p->entityHeader);
+
+	Body_init(&entity_p->body, pos, getVec2f(15, 20));
+
+	Physics_init(&entity_p->physics);
+
+	return entity_p;
 
 }
-*/

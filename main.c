@@ -58,7 +58,7 @@ void Engine_start(){
 	initLevelState();
 	//initEditorState();
 
-	//addEnemy(getVec2f(300, 100));
+	addEnemy(getVec2f(400, 100));
 
 }
 
@@ -90,28 +90,12 @@ void Engine_update(float deltaTime){
 		if(entity_p->type == ENTITY_TYPE_PLAYER){
 			addSprite(entity_p->body.pos, entity_p->body.size, Renderer2D_getColor(0.1, 0.2, 0.7), 1.0);
 		}
+
+		if(entity_p->type == ENTITY_TYPE_ENEMY){
+			addSprite(entity_p->body.pos, entity_p->body.size, Renderer2D_getColor(1.0, 0.0, 0.0), 1.0);
+		}
 	
 	}
-
-	/*
-	//update player sprite
-	{
-		Body *body_p = getBodyByID(player.bodyID);
-
-		addSprite(body_p->pos, body_p->size, Renderer2D_getColor(0.1, 0.2, 0.7), 1.0);
-	}
-
-	//update enemy sprites
-	for(int i = 0; i < enemies.length; i++){
-
-		Enemy *enemy_p = Array_getItemPointerByIndex(&enemies, i);
-
-		Body *body_p = getBodyByID(enemy_p->bodyID);
-
-		addSprite(body_p->pos, body_p->size, Renderer2D_getColor(1.0, 0.0, 0.0), 1.0);
-
-	}
-	*/
 
 }
 
@@ -132,22 +116,6 @@ void Engine_draw(){
 	Renderer2D_supplyUniform(&renderer, &alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
 
 	Renderer2D_drawRectangle(&renderer);
-
-	/*
-	//draw player
-	{
-		color = Renderer2D_getColor(0.1, 0.2, 0.7);
-
-		Renderer2D_setShaderProgram(&renderer, renderer.colorShaderProgram);
-
-		Renderer2D_beginRectangle(&renderer, (int)player.pos.x, (int)player.pos.y, (int)player.size.x, (int)player.size.y);
-
-		Renderer2D_supplyUniform(&renderer, &alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
-		Renderer2D_supplyUniform(&renderer, &color, "color", RENDERER2D_UNIFORM_TYPE_COLOR);
-
-		Renderer2D_drawRectangle(&renderer);
-	}
-	*/
 
 	//draw sprites
 	for(int i = 0; i < sprites.length; i++){

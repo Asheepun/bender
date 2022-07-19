@@ -57,6 +57,36 @@ void levelState(){
 
 		}
 
+		if(entity_p->type == ENTITY_TYPE_ENEMY){
+
+			entity_p->physics.acceleration.y += ENEMY_GRAVITY;
+
+			//look for player
+			for(int j = 0; j < entities.length; j++){
+
+				Entity *entity2_p = Array_getItemPointerByIndex(&entities, j);
+
+				if(entity2_p->type == ENTITY_TYPE_PLAYER
+				&& fabs(entity2_p->body.pos.x - entity_p->body.pos.x) < ENEMY_DETECTION_RANGE){
+
+					if(entity2_p->body.pos.x < entity_p->body.pos.x){
+						entity_p->physics.acceleration.x += -ENEMY_WALK_ACCELERATION;
+					}else{
+						entity_p->physics.acceleration.x += ENEMY_WALK_ACCELERATION;
+					}
+
+					if(entity_p->physics.onGround){
+						entity_p->physics.acceleration.y -= ENEMY_JUMP_ACCELERATION;
+					}
+				
+				}
+
+			}
+
+			entity_p->physics.resistance.x = ENEMY_WALK_RESISTANCE;
+
+		}
+
 	}
 
 	/*
