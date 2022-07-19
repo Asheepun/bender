@@ -37,7 +37,6 @@ enum DrawingTools currentDrawingTool = DRAWING_TOOL_RECTANGLE;
 Vec2f rectanglePos;
 Vec2f rectangleSize;
 bool holdingRectangle;
-size_t rectangleSpriteID;
 
 Pixel currentColor;
 
@@ -51,20 +50,7 @@ void initEditorState(){
 
 	IGUI_SliderData_init(&drawingRadiusSlider, 0.5);
 
-	IGUI_TextInputData_init(&levelTextInput, currentLevel.name, strlen("Untitled"));
-
-	{
-		Sprite *sprite_p = Array_addItem(&sprites);
-
-		EntityHeader_init(&sprite_p->entityHeader);
-
-		sprite_p->pos = getVec2f(100, 100);
-		sprite_p->size = getVec2f(100, 100);
-		sprite_p->color = Renderer2D_getColor(0.0, 0.0, 1.0);
-		sprite_p->alpha = 0.0;
-
-		rectangleSpriteID = sprite_p->entityHeader.ID;
-	}
+	IGUI_TextInputData_init(&levelTextInput, currentLevel.name, strlen(currentLevel.name));
 
 	currentColor = rockColor;
 
@@ -267,11 +253,7 @@ void editorState(){
 
 	if(currentDrawingTool == DRAWING_TOOL_RECTANGLE){
 
-		Sprite *sprite_p = Array_getItemPointerByID(&sprites, rectangleSpriteID);
-
-		sprite_p->alpha = 0.0;
-
-		rectangleSpriteID = sprite_p->entityHeader.ID;
+		float alpha = 0.0;
 	
 		if(Engine_pointer.downed
 		&& !IGUI_hoveringOverGUI){
@@ -282,7 +264,7 @@ void editorState(){
 		rectangleSize = getVec2f(0, 0);
 		if(holdingRectangle){
 			rectangleSize = getSubVec2f(offsetPointerPos, rectanglePos);
-			sprite_p->alpha = 0.5;
+			alpha = 0.5;
 		}
 
 		if(Engine_pointer.upped){
@@ -314,8 +296,7 @@ void editorState(){
 
 		}
 
-		sprite_p->pos = rectanglePos;
-		sprite_p->size = rectangleSize;
+		addSprite(rectanglePos, rectangleSize, Renderer2D_getColor(0.0, 0.0, 1.0), alpha);
 		
 	}
 

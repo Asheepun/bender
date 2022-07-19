@@ -67,10 +67,10 @@ void *Array_getItemPointerByID(Array *array_p, size_t ID){
 
 	}
 
-	//printf("***\n");
-	//printf("Array_getItemPointerByID\n");
-	//printf("COULD NOT FIND ARRAY ITEM WITH ID: %i\n", ID);
-	//printf("***\n");
+	printf("***\n");
+	printf("Array_getItemPointerByID\n");
+	printf("COULD NOT FIND ARRAY ITEM WITH ID: %i\n", ID);
+	printf("***\n");
 
 	return NULL;
 

@@ -4,6 +4,7 @@
 #include "engine/renderer2d.h"
 #include "engine/array.h"
 #include "engine/igui.h"
+#include "engine/files.h"
 
 #include "stdio.h"
 #include "math.h"
@@ -32,18 +33,39 @@ void Engine_start(){
 	collisionBuffer = malloc(sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
 	clearedCollisionBuffer = malloc(sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
 
+	Array_init(&entities, sizeof(Entity));
+	//Array_init(&bodies, sizeof(Body));
+	//Array_init(&enemies, sizeof(Enemy));
+
 	Level_init(&currentLevel);
 
 	Array_init(&sprites, sizeof(Sprite));
 
-	currentGameState = GAME_STATE_LEVEL_EDITOR;
+	{//load level from file
+		long int fileSize;
+		char *data = getFileData_mustFree("levels/Untitled.level", &fileSize);
 
-	//initLevelState();
-	initEditorState();
+		memcpy(&currentLevel, data, sizeof(Level));
+
+		free(data);
+	}
+
+	Level_load(&currentLevel);
+
+	//currentGameState = GAME_STATE_LEVEL_EDITOR;
+	currentGameState = GAME_STATE_LEVEL;
+
+	initLevelState();
+	//initEditorState();
+
+	//addEnemy(getVec2f(300, 100));
 
 }
 
 void Engine_update(float deltaTime){
+
+	//clear sprites
+	sprites.length = 0;
 
 	if(Engine_keys[ENGINE_KEY_Q].down){
 		Engine_quit();
@@ -57,6 +79,39 @@ void Engine_update(float deltaTime){
 	if(currentGameState == GAME_STATE_LEVEL_EDITOR){
 		editorState();
 	}
+
+	printf("%i\n", entities.length);
+
+	//update entity sprites
+	for(int i = 0; i < entities.length; i++){
+
+		Entity *entity_p = Array_getItemPointerByIndex(&entities, i);
+
+		if(entity_p->type == ENTITY_TYPE_PLAYER){
+			addSprite(entity_p->body.pos, entity_p->body.size, Renderer2D_getColor(0.1, 0.2, 0.7), 1.0);
+		}
+	
+	}
+
+	/*
+	//update player sprite
+	{
+		Body *body_p = getBodyByID(player.bodyID);
+
+		addSprite(body_p->pos, body_p->size, Renderer2D_getColor(0.1, 0.2, 0.7), 1.0);
+	}
+
+	//update enemy sprites
+	for(int i = 0; i < enemies.length; i++){
+
+		Enemy *enemy_p = Array_getItemPointerByIndex(&enemies, i);
+
+		Body *body_p = getBodyByID(enemy_p->bodyID);
+
+		addSprite(body_p->pos, body_p->size, Renderer2D_getColor(1.0, 0.0, 0.0), 1.0);
+
+	}
+	*/
 
 }
 
@@ -78,17 +133,21 @@ void Engine_draw(){
 
 	Renderer2D_drawRectangle(&renderer);
 
+	/*
 	//draw player
-	color = Renderer2D_getColor(0.1, 0.2, 0.7);
+	{
+		color = Renderer2D_getColor(0.1, 0.2, 0.7);
 
-	Renderer2D_setShaderProgram(&renderer, renderer.colorShaderProgram);
+		Renderer2D_setShaderProgram(&renderer, renderer.colorShaderProgram);
 
-	Renderer2D_beginRectangle(&renderer, (int)player.pos.x, (int)player.pos.y, (int)player.size.x, (int)player.size.y);
+		Renderer2D_beginRectangle(&renderer, (int)player.pos.x, (int)player.pos.y, (int)player.size.x, (int)player.size.y);
 
-	Renderer2D_supplyUniform(&renderer, &alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
-	Renderer2D_supplyUniform(&renderer, &color, "color", RENDERER2D_UNIFORM_TYPE_COLOR);
+		Renderer2D_supplyUniform(&renderer, &alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
+		Renderer2D_supplyUniform(&renderer, &color, "color", RENDERER2D_UNIFORM_TYPE_COLOR);
 
-	Renderer2D_drawRectangle(&renderer);
+		Renderer2D_drawRectangle(&renderer);
+	}
+	*/
 
 	//draw sprites
 	for(int i = 0; i < sprites.length; i++){
