@@ -10,6 +10,8 @@
 #include "math.h"
 #include "string.h"
 
+World world;
+
 void Engine_start(){
 
 	Engine_setWindowTitle("Simulation sketches");
@@ -18,10 +20,11 @@ void Engine_start(){
 
 	Engine_centerWindow();
 
-	Renderer2D_init(&renderer, WIDTH, HEIGHT);
+	Renderer2D_init(&world.renderer, WIDTH, HEIGHT);
 
 	IGUI_init();
 
+	/*
 	//init screen rendering
 	screenBuffer = malloc(sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
 
@@ -36,36 +39,39 @@ void Engine_start(){
 	Array_init(&entities, sizeof(Entity));
 	//Array_init(&bodies, sizeof(Body));
 	//Array_init(&enemies, sizeof(Enemy));
+	*/
 
-	Level_init(&currentLevel);
+	World_init(&world);
 
-	Array_init(&sprites, sizeof(Sprite));
+	Level_init(&world.currentLevel);
+
+	//Array_init(&sprites, sizeof(Sprite));
 
 	{//load level from file
 		long int fileSize;
 		char *data = getFileData_mustFree("levels/Untitled.level", &fileSize);
 
-		memcpy(&currentLevel, data, sizeof(Level));
+		memcpy(&world.currentLevel, data, sizeof(Level));
 
 		free(data);
 	}
 
-	Level_load(&currentLevel);
+	World_Level_load(&world, &world.currentLevel);
 
 	//currentGameState = GAME_STATE_LEVEL_EDITOR;
-	currentGameState = GAME_STATE_LEVEL;
+	world.currentGameState = GAME_STATE_LEVEL;
 
-	initLevelState();
-	//initEditorState();
+	World_initLevelState(&world);
+	//World_initEditorState(&world);
 
-	addEnemy(getVec2f(400, 100));
+	World_addEnemy(&world, getVec2f(400, 100));
 
 }
 
 void Engine_update(float deltaTime){
 
 	//clear sprites
-	sprites.length = 0;
+	world.sprites.length = 0;
 
 	if(Engine_keys[ENGINE_KEY_Q].down){
 		Engine_quit();
@@ -73,26 +79,24 @@ void Engine_update(float deltaTime){
 
 	Engine_setPointerScale(Engine_clientWidth / (float)WIDTH, Engine_clientHeight / (float)HEIGHT);
 
-	if(currentGameState == GAME_STATE_LEVEL){
-		levelState();
+	if(world.currentGameState == GAME_STATE_LEVEL){
+		World_levelState(&world);
 	}
-	if(currentGameState == GAME_STATE_LEVEL_EDITOR){
-		editorState();
+	if(world.currentGameState == GAME_STATE_LEVEL_EDITOR){
+		World_editorState(&world);
 	}
-
-	printf("%i\n", entities.length);
 
 	//update entity sprites
-	for(int i = 0; i < entities.length; i++){
+	for(int i = 0; i < world.entities.length; i++){
 
-		Entity *entity_p = Array_getItemPointerByIndex(&entities, i);
+		Entity *entity_p = Array_getItemPointerByIndex(&world.entities, i);
 
 		if(entity_p->type == ENTITY_TYPE_PLAYER){
-			addSprite(entity_p->body.pos, entity_p->body.size, Renderer2D_getColor(0.1, 0.2, 0.7), 1.0);
+			World_addSprite(&world, entity_p->body.pos, entity_p->body.size, Renderer2D_getColor(0.1, 0.2, 0.7), 1.0);
 		}
 
 		if(entity_p->type == ENTITY_TYPE_ENEMY){
-			addSprite(entity_p->body.pos, entity_p->body.size, Renderer2D_getColor(1.0, 0.0, 0.0), 1.0);
+			World_addSprite(&world, entity_p->body.pos, entity_p->body.size, Renderer2D_getColor(1.0, 0.0, 0.0), 1.0);
 		}
 	
 	}
@@ -101,39 +105,39 @@ void Engine_update(float deltaTime){
 
 void Engine_draw(){
 
-	Renderer2D_updateDrawSize(&renderer, Engine_clientWidth, Engine_clientHeight);
+	Renderer2D_updateDrawSize(&world.renderer, Engine_clientWidth, Engine_clientHeight);
 
 	float alpha = 1.0;
 	Renderer2D_Color color;
 
 	//draw world pixels
-	Renderer2D_setShaderProgram(&renderer, renderer.textureShaderProgram);
+	Renderer2D_setShaderProgram(&world.renderer, world.renderer.textureShaderProgram);
 
-	Renderer2D_beginRectangle(&renderer, 0, 0, MAX_WIDTH, MAX_HEIGHT);
+	Renderer2D_beginRectangle(&world.renderer, 0, 0, MAX_WIDTH, MAX_HEIGHT);
 
-	Renderer2D_setTexture(&renderer, screenTexture);
+	Renderer2D_setTexture(&world.renderer, world.screenTexture);
 
-	Renderer2D_supplyUniform(&renderer, &alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
+	Renderer2D_supplyUniform(&world.renderer, &alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
 
-	Renderer2D_drawRectangle(&renderer);
+	Renderer2D_drawRectangle(&world.renderer);
 
 	//draw sprites
-	for(int i = 0; i < sprites.length; i++){
+	for(int i = 0; i < world.sprites.length; i++){
 		
-		Sprite *sprite_p = Array_getItemPointerByIndex(&sprites, i);
+		Sprite *sprite_p = Array_getItemPointerByIndex(&world.sprites, i);
 
-		Renderer2D_setShaderProgram(&renderer, renderer.colorShaderProgram);
+		Renderer2D_setShaderProgram(&world.renderer, world.renderer.colorShaderProgram);
 
-		Renderer2D_beginRectangle(&renderer, (int)sprite_p->pos.x, (int)sprite_p->pos.y, (int)sprite_p->size.x, (int)sprite_p->size.y);
+		Renderer2D_beginRectangle(&world.renderer, (int)sprite_p->pos.x, (int)sprite_p->pos.y, (int)sprite_p->size.x, (int)sprite_p->size.y);
 
-		Renderer2D_supplyUniform(&renderer, &sprite_p->alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
-		Renderer2D_supplyUniform(&renderer, &sprite_p->color, "color", RENDERER2D_UNIFORM_TYPE_COLOR);
+		Renderer2D_supplyUniform(&world.renderer, &sprite_p->alpha, "alpha", RENDERER2D_UNIFORM_TYPE_FLOAT);
+		Renderer2D_supplyUniform(&world.renderer, &sprite_p->color, "color", RENDERER2D_UNIFORM_TYPE_COLOR);
 
-		Renderer2D_drawRectangle(&renderer);
+		Renderer2D_drawRectangle(&world.renderer);
 
 	}
 
-	IGUI_render(&renderer);
+	IGUI_render(&world.renderer);
 
 }
 

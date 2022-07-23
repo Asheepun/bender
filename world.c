@@ -8,6 +8,36 @@
 #include "math.h"
 #include "string.h"
 
+void World_init(World *world_p){
+
+	//init screen rendering
+	world_p->screenBuffer = malloc(sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
+
+	Renderer2D_Texture_init(&world_p->screenTexture, "screen-texture", (unsigned char *)world_p->screenBuffer, MAX_WIDTH, MAX_HEIGHT);
+
+	//init world
+	Array_init(&world_p->particles, sizeof(Particle));
+	world_p->staticParticlesBuffer = malloc(sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
+	world_p->collisionBuffer = malloc(sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
+	world_p->clearedCollisionBuffer = malloc(sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
+
+	Array_init(&world_p->entities, sizeof(Entity));
+
+	Array_init(&world_p->sprites, sizeof(Sprite));
+	
+	world_p->levelWidth = WIDTH;
+	world_p->levelHeight = HEIGHT;
+
+}
+
+void World_restore(World *world_p){
+
+	Array_clear(&world_p->entities);
+
+	Array_clear(&world_p->sprites);
+
+}
+
 int getBufferIndex(float x, float y){
 	return (int)y * MAX_WIDTH + (int)x;
 }
@@ -21,9 +51,9 @@ bool checkPixelEquals(Pixel p1, Pixel p2){
 
 static size_t currentID = 0;
 
-Sprite *addSprite(Vec2f pos, Vec2f size, Renderer2D_Color color, float alpha){
+Sprite *World_addSprite(World *world_p, Vec2f pos, Vec2f size, Renderer2D_Color color, float alpha){
 
-	Sprite *sprite_p = Array_addItem(&sprites);
+	Sprite *sprite_p = Array_addItem(&world_p->sprites);
 
 	sprite_p->pos = pos;
 	sprite_p->size = size;
@@ -32,9 +62,9 @@ Sprite *addSprite(Vec2f pos, Vec2f size, Renderer2D_Color color, float alpha){
 
 }
 
-Particle *addParticle(Vec2f pos){
+Particle *World_addParticle(World *world_p, Vec2f pos){
 
-	Particle *particle_p = Array_addItem(&particles);
+	Particle *particle_p = Array_addItem(&world_p->particles);
 
 	particle_p->ID = currentID;
 	currentID++;
@@ -52,22 +82,22 @@ Particle *addParticle(Vec2f pos){
 }
 
 
-bool checkOubVec2f(Vec2f v){
+bool World_checkOubVec2f(World *world_p, Vec2f v){
 	if((int)v.x < 0
 	|| (int)v.y < 0
-	|| (int)v.x >= levelWidth
-	|| (int)v.y >= levelHeight){
+	|| (int)v.x >= world_p->levelWidth
+	|| (int)v.y >= world_p->levelHeight){
 		return true;
 	}
 
 	return false;
 }
 
-bool Particle_checkOub(Particle *particle_p){
+bool World_Particle_checkOub(World *world_p, Particle *particle_p){
 	if((int)particle_p->pos.x < 0
 	|| (int)particle_p->pos.y < 0
-	|| (int)particle_p->pos.x >= levelWidth
-	|| (int)particle_p->pos.y >= levelHeight){
+	|| (int)particle_p->pos.x >= world_p->levelWidth
+	|| (int)particle_p->pos.y >= world_p->levelHeight){
 		return true;
 	}
 
@@ -112,9 +142,9 @@ Body *getBodyByID(size_t ID){
 }
 */
 
-Entity *addPlayer(Vec2f pos){
+Entity *World_addPlayer(World *world_p, Vec2f pos){
 
-	Entity *entity_p = Array_addItem(&entities);
+	Entity *entity_p = Array_addItem(&world_p->entities);
 
 	entity_p->type = ENTITY_TYPE_PLAYER;
 
@@ -154,23 +184,27 @@ void Level_init(Level *level_p){
 
 	String_set(level_p->name, "Untitled", STRING_SIZE);
 
+	level_p->width = WIDTH;
+
 }
 
-void Level_load(Level *level_p){
+void World_Level_load(World *world_p, Level *level_p){
 
-	memcpy(staticParticlesBuffer, level_p->staticParticlesBuffer, sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
+	memcpy(world_p->staticParticlesBuffer, level_p->staticParticlesBuffer, sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
 
-	Array_clear(&entities);
+	Array_clear(&world_p->entities);
 
-	addPlayer(level_p->playerPos);
+	World_addPlayer(world_p, level_p->playerPos);
+
+	world_p->levelWidth = level_p->width;
 
 	//initPlayer(level_p->playerPos);
 
 }
 
-Entity *addEnemy(Vec2f pos){
+Entity *World_addEnemy(World *world_p, Vec2f pos){
 
-	Entity *entity_p = Array_addItem(&entities);
+	Entity *entity_p = Array_addItem(&world_p->entities);
 
 	entity_p->type = ENTITY_TYPE_ENEMY;
 

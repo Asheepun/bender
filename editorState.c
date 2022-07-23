@@ -17,6 +17,7 @@ enum DrawingTools{
 	DRAWING_TOOL_PEN,
 	DRAWING_TOOL_RECTANGLE,
 	DRAWING_TOOL_PLAYER,
+	DRAWING_TOOL_WIDTH,
 	NUMBER_OF_DRAWING_TOOLS,
 };
 
@@ -42,7 +43,7 @@ Pixel currentColor;
 
 bool openingLevel = false;
 
-void initEditorState(){
+void World_initEditorState(World *world_p){
 
 	//for(int i = 0; i < MAX_WIDTH * MAX_HEIGHT; i++){
 		//staticParticlesBuffer[i] = backgroundColor;
@@ -50,30 +51,30 @@ void initEditorState(){
 
 	IGUI_SliderData_init(&drawingRadiusSlider, 0.5);
 
-	IGUI_TextInputData_init(&levelTextInput, currentLevel.name, strlen(currentLevel.name));
+	IGUI_TextInputData_init(&levelTextInput, world_p->currentLevel.name, strlen(world_p->currentLevel.name));
 
 	currentColor = rockColor;
 
 }
 
-void editorState(){
+void World_editorState(World *world_p){
 
 	//move offset
 	if(Engine_keys[ENGINE_KEY_D].down){
-		renderer.offset.x -= 3;
+		world_p->renderer.offset.x -= 3;
 	}
 	if(Engine_keys[ENGINE_KEY_A].down){
-		renderer.offset.x += 3;
+		world_p->renderer.offset.x += 3;
 	}
 
-	if(renderer.offset.x > 0){
-		renderer.offset.x = 0;
+	if(world_p->renderer.offset.x > 0){
+		world_p->renderer.offset.x = 0;
 	}
-	if(renderer.offset.x < -MAX_WIDTH + WIDTH){
-		renderer.offset.x = -MAX_WIDTH + WIDTH;
+	if(world_p->renderer.offset.x < -MAX_WIDTH + WIDTH){
+		world_p->renderer.offset.x = -MAX_WIDTH + WIDTH;
 	}
 
-	Vec2f offsetPointerPos = getSubVec2f(Engine_pointer.pos, renderer.offset);
+	Vec2f offsetPointerPos = getSubVec2f(Engine_pointer.pos, world_p->renderer.offset);
 
 	//GUI
 	if(Engine_keys[ENGINE_KEY_H].downed){
@@ -121,6 +122,12 @@ void editorState(){
 			currentDrawingTool = DRAWING_TOOL_PLAYER;
 		}
 
+		posX += 70;
+
+		if(IGUI_textButton_click("Width", getVec2f(posX, posY), 20, currentDrawingTool == DRAWING_TOOL_WIDTH)){
+			currentDrawingTool = DRAWING_TOOL_WIDTH;
+		}
+
 
 		if(currentDrawingTool == DRAWING_TOOL_PEN){
 			IGUI_slider(getVec2f(130, 50), &drawingRadiusSlider);
@@ -132,16 +139,16 @@ void editorState(){
 		posY = 10;
 
 		if(IGUI_textButton_click("Play Level", getVec2f(posX, posY), 20, false)){
-			initLevelState();
-			currentGameState = GAME_STATE_LEVEL;	
+			World_initLevelState(world_p);
+			world_p->currentGameState = GAME_STATE_LEVEL;	
 		}
 		posY += 30;
 
 		if(IGUI_textButton_click("New Level", getVec2f(posX, posY), 20, false)){
 
-			Level_init(&currentLevel);
+			Level_init(&world_p->currentLevel);
 
-			String_set(levelTextInput.text, currentLevel.name, STRING_SIZE);
+			String_set(levelTextInput.text, world_p->currentLevel.name, STRING_SIZE);
 
 		}
 		posY += 30;
@@ -158,7 +165,7 @@ void editorState(){
 			String_append(path, levelTextInput.text);
 			String_append(path, ".level");
 			
-			writeDataToFile(path, (char *)&currentLevel, sizeof(Level));
+			writeDataToFile(path, (char *)&world_p->currentLevel, sizeof(Level));
 
 		}
 		posY += 30;
@@ -202,9 +209,9 @@ void editorState(){
 						long int fileSize;
 						char *data = getFileData_mustFree(path, &fileSize);
 
-						memcpy(&currentLevel, data, sizeof(Level));
+						memcpy(&world_p->currentLevel, data, sizeof(Level));
 
-						String_set(levelTextInput.text, currentLevel.name, STRING_SIZE);
+						String_set(levelTextInput.text, world_p->currentLevel.name, STRING_SIZE);
 
 						free(data);
 
@@ -238,10 +245,10 @@ void editorState(){
 
 				int index = getBufferIndex(pos.x, pos.y);
 
-				if(!checkOubVec2f(pos)
+				if(!World_checkOubVec2f(world_p, pos)
 				&& getMagVec2f(getSubVec2f(pos, offsetPointerPos)) < drawingRadius){
 					
-					currentLevel.staticParticlesBuffer[index] = currentColor;
+					world_p->currentLevel.staticParticlesBuffer[index] = currentColor;
 
 				}
 
@@ -285,8 +292,8 @@ void editorState(){
 
 					int index = getBufferIndex(pos.x, pos.y);
 
-					if(!checkOubVec2f(pos)){
-						currentLevel.staticParticlesBuffer[index] = currentColor;
+					if(!World_checkOubVec2f(world_p, pos)){
+						world_p->currentLevel.staticParticlesBuffer[index] = currentColor;
 					}
 				
 				}
@@ -296,7 +303,7 @@ void editorState(){
 
 		}
 
-		addSprite(rectanglePos, rectangleSize, Renderer2D_getColor(0.0, 0.0, 1.0), alpha);
+		World_addSprite(world_p, rectanglePos, rectangleSize, Renderer2D_getColor(0.0, 0.0, 1.0), alpha);
 		
 	}
 
@@ -304,21 +311,31 @@ void editorState(){
 	&& !IGUI_hoveringOverGUI){
 
 		if(Engine_pointer.down){
-			currentLevel.playerPos = offsetPointerPos;
+			world_p->currentLevel.playerPos = offsetPointerPos;
 		}
 	
 	}
 
-	String_set(currentLevel.name, levelTextInput.text, STRING_SIZE);
+	if(currentDrawingTool == DRAWING_TOOL_WIDTH
+	&& Engine_pointer.down
+	&& !IGUI_hoveringOverGUI){
+		
+		world_p->currentLevel.width = offsetPointerPos.x;
 
-	Level_load(&currentLevel);
+	}
+
+	World_addSprite(world_p, getVec2f(world_p->currentLevel.width, 0), getVec2f(10, HEIGHT), Renderer2D_getColor(1.0, 0.0, 0.0), 0.5);
+
+	String_set(world_p->currentLevel.name, levelTextInput.text, STRING_SIZE);
+
+	World_Level_load(world_p, &world_p->currentLevel);
 
 	//update screen texture
-	memcpy(screenBuffer, staticParticlesBuffer, sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
+	memcpy(world_p->screenBuffer, world_p->staticParticlesBuffer, sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
 
-	Renderer2D_Texture_free(&screenTexture);
+	Renderer2D_Texture_free(&world_p->screenTexture);
 
-	Renderer2D_Texture_init(&screenTexture, "screen-texture", (unsigned char *)screenBuffer, MAX_WIDTH, MAX_HEIGHT);
+	Renderer2D_Texture_init(&world_p->screenTexture, "screen-texture", (unsigned char *)world_p->screenBuffer, MAX_WIDTH, MAX_HEIGHT);
 
 	/*
 	for(int i = 0; i < Engine_textInput.length; i++){

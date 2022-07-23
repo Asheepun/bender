@@ -115,7 +115,31 @@ typedef struct Level{
 	Pixel staticParticlesBuffer[MAX_WIDTH * MAX_HEIGHT];
 	Vec2f playerPos;
 	char name[STRING_SIZE];
+	int width;
 }Level;
+
+typedef struct World{
+
+	int levelWidth;
+	int levelHeight;
+
+	enum GameState currentGameState;
+	Level currentLevel;
+
+	Array particles;
+	Pixel *staticParticlesBuffer;
+	Collision *collisionBuffer;
+	Collision *clearedCollisionBuffer;
+
+	Array entities;
+
+	Renderer2D_Renderer renderer;
+	Pixel *screenBuffer;
+	Renderer2D_Texture screenTexture;
+	int screenTextureSize;
+	Array sprites;
+
+}World;
 
 //GLOBAL VARIABLES
 
@@ -126,8 +150,8 @@ static Pixel metalColor = { 128, 128, 128, 255 };
 static int WIDTH = 800;
 static int HEIGHT = 450;
 
-static int levelWidth = 800 * 4;
-static int levelHeight = 450;
+//static int levelWidth = 800;
+//static int levelHeight = 450;
 
 static float BENDING_RADIUS = 25;
 static float BENDING_RADIUS_MARGIN = 10;
@@ -148,10 +172,11 @@ static float ENEMY_WALK_ACCELERATION = 0.40;
 static float ENEMY_WALK_RESISTANCE = 0.90;
 static float ENEMY_DETECTION_RANGE = 200;
 
-enum GameState currentGameState;
+//enum GameState currentGameState;
 
-Level currentLevel;
+//Level currentLevel;
 
+/*
 //WORLD VARIABLES
 Array particles;
 Pixel *staticParticlesBuffer;
@@ -161,6 +186,7 @@ Collision *clearedCollisionBuffer;
 Array entities;
 
 Array sprites;
+*/
 //Player player;
 //Array enemies;
 
@@ -168,50 +194,56 @@ Array sprites;
 
 //RENDER VARIABLES
 
+/*
 Renderer2D_Renderer renderer;
 Pixel *screenBuffer;
 Renderer2D_Texture screenTexture;
 int screenTextureSize;
+*/
 
 //FUNCTIONS
 
 //world.c
 
+void World_init(World *);
+
+void World_restore(World *);
+
 int getBufferIndex(float, float);
 
 bool checkPixelEquals(Pixel, Pixel);
 
-bool checkOubVec2f(Vec2f);
+bool World_checkOubVec2f(World *, Vec2f);
 
-Particle *addParticle(Vec2f);
+Particle *World_addParticle(World *, Vec2f);
 
-Sprite *addSprite(Vec2f, Vec2f, Renderer2D_Color, float);
+Sprite *World_addSprite(World *, Vec2f, Vec2f, Renderer2D_Color, float);
 
-Entity *addPlayer(Vec2f);
-Entity *addEnemy(Vec2f);
+Entity *World_addPlayer(World *, Vec2f);
+Entity *World_addEnemy(World *, Vec2f);
 
 //Body *addBody(Vec2f, Vec2f);
 
 //Body *getBodyByID(size_t);
 
-bool Particle_checkOub(Particle *);
+bool World_Particle_checkOub(World *, Particle *);
 
 //void initPlayer(Vec2f);
 
 void Level_init(Level *);
 
-void Level_load(Level *);
+void World_Level_load(World *, Level *);
 
 //levelState.c
 
-void initLevelState();
+void World_initLevelState(World *);
 
-void levelState();
+void World_levelState(World *);
 
 //editorState.c
 
-void initEditorState();
+void World_initEditorState(World *);
 
-void editorState();
+void World_editorState(World *);
 
 #endif

@@ -11,30 +11,32 @@
 
 Vec2f forcePoint = { 0, 0 };
 
-void initLevelState(){
+void World_initLevelState(World *world_p){
 
 	//restore world
 	for(int i = 0; i < MAX_WIDTH * MAX_HEIGHT; i++){
-		clearedCollisionBuffer[i].ID = -1;
+		world_p->clearedCollisionBuffer[i].ID = -1;
 	}
 
-	Array_clear(&particles);
+	Array_clear(&world_p->particles);
 
-	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
+	memcpy(world_p->collisionBuffer, world_p->clearedCollisionBuffer, sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
 
 }
 
-void levelState(){
+void World_levelState(World *world_p){
+
+	Vec2f offsetPointerPos = getSubVec2f(Engine_pointer.pos, world_p->renderer.offset);
 
 	if(Engine_keys[ENGINE_KEY_G].downed){
-		initEditorState();
-		currentGameState = GAME_STATE_LEVEL_EDITOR;
+		World_initEditorState(world_p);
+		world_p->currentGameState = GAME_STATE_LEVEL_EDITOR;
 	}
 
 	//control entities
-	for(int i = 0; i < entities.length; i++){
+	for(int i = 0; i < world_p->entities.length; i++){
 
-		Entity *entity_p = Array_getItemPointerByIndex(&entities, i);
+		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
 
 		entity_p->physics.acceleration = getVec2f(0, 0);
 
@@ -62,9 +64,9 @@ void levelState(){
 			entity_p->physics.acceleration.y += ENEMY_GRAVITY;
 
 			//look for player
-			for(int j = 0; j < entities.length; j++){
+			for(int j = 0; j < world_p->entities.length; j++){
 
-				Entity *entity2_p = Array_getItemPointerByIndex(&entities, j);
+				Entity *entity2_p = Array_getItemPointerByIndex(&world_p->entities, j);
 
 				if(entity2_p->type == ENTITY_TYPE_PLAYER
 				&& fabs(entity2_p->body.pos.x - entity_p->body.pos.x) < ENEMY_DETECTION_RANGE){
@@ -114,7 +116,7 @@ void levelState(){
 	}
 	*/
 
-	forcePoint = Engine_pointer.pos;
+	forcePoint = offsetPointerPos;
 
 	//check if static particles are bended
 	if(Engine_pointer.downed){
@@ -124,11 +126,11 @@ void levelState(){
 		for(int x = 0; x < BENDING_RADIUS * 2; x++){
 			for(int y = 0; y < BENDING_RADIUS * 2; y++){
 
-				Vec2f pos = getVec2f(Engine_pointer.pos.x - BENDING_RADIUS + x, Engine_pointer.pos.y - BENDING_RADIUS + y);
+				Vec2f pos = getVec2f(offsetPointerPos.x - BENDING_RADIUS + x, offsetPointerPos.y - BENDING_RADIUS + y);
 
 				int index = getBufferIndex(pos.x, pos.y);
 
-				if(!checkPixelEquals(staticParticlesBuffer[index], rockColor)){
+				if(!checkPixelEquals(world_p->staticParticlesBuffer[index], rockColor)){
 					buried = false;	
 				}
 
@@ -139,17 +141,17 @@ void levelState(){
 			for(int x = 0; x < BENDING_RADIUS * 2; x++){
 				for(int y = 0; y < BENDING_RADIUS * 2; y++){
 
-					Vec2f pos = getVec2f(Engine_pointer.pos.x - BENDING_RADIUS + x, Engine_pointer.pos.y - BENDING_RADIUS + y);
+					Vec2f pos = getVec2f(offsetPointerPos.x - BENDING_RADIUS + x, offsetPointerPos.y - BENDING_RADIUS + y);
 
 					int index = getBufferIndex(pos.x, pos.y);
 
-					if(!checkOubVec2f(pos)
-					&& checkPixelEquals(staticParticlesBuffer[index], rockColor)
+					if(!World_checkOubVec2f(world_p, pos)
+					&& checkPixelEquals(world_p->staticParticlesBuffer[index], rockColor)
 					&& getMagVec2f(getSubVec2f(pos, forcePoint)) < BENDING_RADIUS){
 						
-						staticParticlesBuffer[index] = backgroundColor;
+						world_p->staticParticlesBuffer[index] = backgroundColor;
 
-						Particle *particle_p = addParticle(pos);
+						Particle *particle_p = World_addParticle(world_p, pos);
 
 					}
 				
@@ -160,9 +162,9 @@ void levelState(){
 	}
 
 	//apply physics particles
-	for(int i = 0; i < particles.length; i++){
+	for(int i = 0; i < world_p->particles.length; i++){
 
-		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+		Particle *particle_p = Array_getItemPointerByIndex(&world_p->particles, i);
 
 		particle_p->lastPos = particle_p->pos;
 
@@ -194,9 +196,9 @@ void levelState(){
 	}
 
 	//apply physics entities
-	for(int i = 0; i < entities.length; i++){
+	for(int i = 0; i < world_p->entities.length; i++){
 
-		Entity *entity_p = Array_getItemPointerByIndex(&entities, i);
+		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
 
 		entity_p->lastBody = entity_p->body;
 
@@ -213,18 +215,18 @@ void levelState(){
 	//move and collide particles and entities
 
 	//move particles y
-	for(int i = 0; i < particles.length; i++){
+	for(int i = 0; i < world_p->particles.length; i++){
 
-		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+		Particle *particle_p = Array_getItemPointerByIndex(&world_p->particles, i);
 
 		particle_p->pos.y += particle_p->velocity.y;
 
 	}
 
 	//handle oub y
-	for(int i = 0; i < particles.length; i++){
+	for(int i = 0; i < world_p->particles.length; i++){
 
-		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+		Particle *particle_p = Array_getItemPointerByIndex(&world_p->particles, i);
 		
 		if(particle_p->pos.y < 0){
 			particle_p->pos.y = 0;
@@ -237,9 +239,9 @@ void levelState(){
 	}
 
 	//move entities y
-	for(int i = 0; i < entities.length; i++){
+	for(int i = 0; i < world_p->entities.length; i++){
 
-		Entity *entity_p = Array_getItemPointerByIndex(&entities, i);
+		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
 
 		entity_p->body.pos.y += entity_p->physics.velocity.y;
 
@@ -248,36 +250,36 @@ void levelState(){
 	//handle col y
 	
 	//put particles into collision buffer y
-	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
+	memcpy(world_p->collisionBuffer, world_p->clearedCollisionBuffer, sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
 
-	for(int i = 0; i < particles.length; i++){
+	for(int i = 0; i < world_p->particles.length; i++){
 
-		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+		Particle *particle_p = Array_getItemPointerByIndex(&world_p->particles, i);
 
-		if(!Particle_checkOub(particle_p)){
+		if(!World_Particle_checkOub(world_p, particle_p)){
 
 			int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-			collisionBuffer[index].ID = particle_p->ID;
+			world_p->collisionBuffer[index].ID = particle_p->ID;
 
 		}
 	
 	}
 
 	//check and handle if particles collides with static particles and if they should become static particles y
-	for(int i = 0; i < particles.length; i++){
+	for(int i = 0; i < world_p->particles.length; i++){
 
-		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+		Particle *particle_p = Array_getItemPointerByIndex(&world_p->particles, i);
 
-		if(Particle_checkOub(particle_p)){
+		if(World_Particle_checkOub(world_p, particle_p)){
 			continue;
 		}
 
 		int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-		if(!checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+		if(!checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 
-			collisionBuffer[index].ID = -1;
+			world_p->collisionBuffer[index].ID = -1;
 
 			int n = 0;
 			//bool oub = false;
@@ -292,7 +294,7 @@ void levelState(){
 
 				if((int)particle_p->pos.y + n < HEIGHT
 				&& (int)particle_p->pos.y + n >= 0
-				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+				&& checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 					foundSomething = true;
 					break;
 				}
@@ -301,7 +303,7 @@ void levelState(){
 
 				if((int)particle_p->pos.y - n < HEIGHT
 				&& (int)particle_p->pos.y - n > 0
-				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+				&& checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 					foundSomething = true;
 					n = -n;
 					break;
@@ -319,9 +321,9 @@ void levelState(){
 
 				index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 			
-				staticParticlesBuffer[index] = rockColor;
+				world_p->staticParticlesBuffer[index] = rockColor;
 
-				Array_removeItemByIndex(&particles, i);
+				Array_removeItemByIndex(&world_p->particles, i);
 				i--;
 
 				continue;
@@ -333,45 +335,45 @@ void levelState(){
 	}
 
 	//check and handle if particles collide and move them out of the way y
-	for(int i = 0; i < particles.length; i++){
+	for(int i = 0; i < world_p->particles.length; i++){
 
-		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+		Particle *particle_p = Array_getItemPointerByIndex(&world_p->particles, i);
 
-		if(Particle_checkOub(particle_p)){
+		if(World_Particle_checkOub(world_p, particle_p)){
 			continue;
 		}
 
 		int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
 		if((int)particle_p->pos.y < 0
-		|| (int)particle_p->pos.y >= HEIGHT
-		|| collisionBuffer[index].ID != -1
-		&& collisionBuffer[index].ID != particle_p->ID
-		|| !checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+		|| (int)particle_p->pos.y >= world_p->levelHeight
+		|| world_p->collisionBuffer[index].ID != -1
+		&& world_p->collisionBuffer[index].ID != particle_p->ID
+		|| !checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 
 			int n = 0;
 			bool foundSomething = false;
 
-			while(n < HEIGHT){
+			while(n < world_p->levelHeight){
 
 				n++;
 
 				index = getBufferIndex(particle_p->pos.x, (int)particle_p->pos.y + n);
 
-				if((int)particle_p->pos.y + n < HEIGHT
+				if((int)particle_p->pos.y + n < world_p->levelHeight
 				&& (int)particle_p->pos.y + n >= 0
-				&& collisionBuffer[index].ID == -1
-				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+				&& world_p->collisionBuffer[index].ID == -1
+				&& checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 					foundSomething = true;
 					break;
 				}
 
 				index = getBufferIndex(particle_p->pos.x, (int)particle_p->pos.y - n);
 
-				if((int)particle_p->pos.y - n < HEIGHT
+				if((int)particle_p->pos.y - n < world_p->levelHeight
 				&& (int)particle_p->pos.y - n >= 0
-				&& collisionBuffer[index].ID == -1
-				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+				&& world_p->collisionBuffer[index].ID == -1
+				&& checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 					foundSomething = true;
 					n = -n;
 					break;
@@ -391,14 +393,14 @@ void levelState(){
 
 		index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-		collisionBuffer[index].ID = particle_p->ID;
+		world_p->collisionBuffer[index].ID = particle_p->ID;
 
 	}
 
 	//check player col y against moving particles
-	for(int i = 0; i < entities.length; i++){
+	for(int i = 0; i < world_p->entities.length; i++){
 
-		Entity *entity_p = Array_getItemPointerByIndex(&entities, i);
+		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
 		//Body *body_p = getBodyByID(player.bodyID);
 
 		//body_p->previousCollisionDirection = COLLISION_DIRECTION_NONE;
@@ -406,15 +408,15 @@ void levelState(){
 		for(int y = 0; y < entity_p->body.size.y; y++){
 			for(int x = 0; x < entity_p->body.size.x; x++){
 
-				if(checkOubVec2f(getVec2f((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y))){
+				if(World_checkOubVec2f(world_p, getVec2f((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y))){
 					continue;
 				}
 
 				int index = getBufferIndex((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y);
 
-				if(collisionBuffer[index].ID != -1){
+				if(world_p->collisionBuffer[index].ID != -1){
 
-					Particle *particle_p = Array_getItemPointerByID(&particles, collisionBuffer[index].ID);
+					Particle *particle_p = Array_getItemPointerByID(&world_p->particles, world_p->collisionBuffer[index].ID);
 
 					float entityCenterY = entity_p->lastBody.pos.y + entity_p->body.size.y / 2;
 					float particleY = particle_p->lastPos.y;
@@ -436,20 +438,20 @@ void levelState(){
 	}
 
 	//check player col y against static particles
-	for(int i = 0; i < entities.length; i++){
+	for(int i = 0; i < world_p->entities.length; i++){
 
-		Entity *entity_p = Array_getItemPointerByIndex(&entities, i);
+		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
 
 		for(int y = 0; y < entity_p->body.size.y; y++){
 			for(int x = 0; x < entity_p->body.size.x; x++){
 
-				if(checkOubVec2f(getVec2f((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y))){
+				if(World_checkOubVec2f(world_p, getVec2f((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y))){
 					continue;
 				}
 
 				int index = getBufferIndex((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y);
 
-				if(!checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+				if(!checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 
 					float entityCenterY = entity_p->lastBody.pos.y + entity_p->body.size.y / 2;
 					float particleY = entity_p->body.pos.y + y;
@@ -471,24 +473,24 @@ void levelState(){
 	}
 
 	//check player col y against moving particles second time
-	for(int i = 0; i < entities.length; i++){
+	for(int i = 0; i < world_p->entities.length; i++){
 
-		Entity *entity_p = Array_getItemPointerByIndex(&entities, i);
+		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
 
 		for(int y = 0; y < entity_p->body.size.y; y++){
 			for(int x = 0; x < entity_p->body.size.x; x++){
 
-				if(checkOubVec2f(getVec2f((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y))){
+				if(World_checkOubVec2f(world_p, getVec2f((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y))){
 					continue;
 				}
 
 				int index = getBufferIndex((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y);
 
-				if(collisionBuffer[index].ID != -1){
+				if(world_p->collisionBuffer[index].ID != -1){
 
-					Particle *particle_p = Array_getItemPointerByID(&particles, collisionBuffer[index].ID);
+					Particle *particle_p = Array_getItemPointerByID(&world_p->particles, world_p->collisionBuffer[index].ID);
 
-					collisionBuffer[index].ID = -1;
+					world_p->collisionBuffer[index].ID = -1;
 
 					//printf("removed ID: %i y\n", particle_p->ID);
 
@@ -497,16 +499,16 @@ void levelState(){
 					int n = 0;
 					bool foundSomething = false;
 
-					while(n < HEIGHT){
+					while(n < world_p->levelHeight){
 
 						n++;
 
 						index = getBufferIndex(particle_p->pos.x, (int)particle_p->pos.y + n);
 
-						if((int)particle_p->pos.y + n < HEIGHT
+						if((int)particle_p->pos.y + n < world_p->levelHeight
 						&& (int)particle_p->pos.y + n >= 0
-						&& collisionBuffer[index].ID == -1
-						&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)
+						&& world_p->collisionBuffer[index].ID == -1
+						&& checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)
 						&& (int)particle_p->pos.y + n < (int)entity_p->body.pos.y
 						&& (int)particle_p->pos.y + n > (int)entity_p->body.pos.y + (int)entity_p->body.size.y){
 							foundSomething = true;
@@ -515,10 +517,10 @@ void levelState(){
 
 						index = getBufferIndex(particle_p->pos.x, (int)particle_p->pos.y - n);
 
-						if((int)particle_p->pos.y - n < HEIGHT
+						if((int)particle_p->pos.y - n < world_p->levelHeight
 						&& (int)particle_p->pos.y - n >= 0
-						&& collisionBuffer[index].ID == -1
-						&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)
+						&& world_p->collisionBuffer[index].ID == -1
+						&& checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)
 						&& !((int)particle_p->pos.y - n >= (int)entity_p->body.pos.y
 						&& (int)particle_p->pos.y - n < (int)entity_p->body.pos.y + (int)entity_p->body.size.y)){
 							foundSomething = true;
@@ -534,7 +536,7 @@ void levelState(){
 
 					index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-					collisionBuffer[index].ID = particle_p->ID;
+					world_p->collisionBuffer[index].ID = particle_p->ID;
 
 				}
 
@@ -543,18 +545,18 @@ void levelState(){
 	}
 
 	//move particles x
-	for(int i = 0; i < particles.length; i++){
+	for(int i = 0; i < world_p->particles.length; i++){
 
-		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+		Particle *particle_p = Array_getItemPointerByIndex(&world_p->particles, i);
 
 		particle_p->pos.x += particle_p->velocity.x;
 
 	}
 
 	//handle oub x
-	for(int i = 0; i < particles.length; i++){
+	for(int i = 0; i < world_p->particles.length; i++){
 
-		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+		Particle *particle_p = Array_getItemPointerByIndex(&world_p->particles, i);
 		
 		if(particle_p->pos.x < 0){
 			particle_p->pos.x = 0;
@@ -567,9 +569,9 @@ void levelState(){
 	}
 
 	//move entities x
-	for(int i = 0; i < entities.length; i++){
+	for(int i = 0; i < world_p->entities.length; i++){
 
-		Entity *entity_p = Array_getItemPointerByIndex(&entities, i);
+		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
 
 		entity_p->body.pos.x += entity_p->physics.velocity.x;
 
@@ -578,60 +580,60 @@ void levelState(){
 	//handle col x
 	
 	//put particles into collision buffer x
-	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
+	memcpy(world_p->collisionBuffer, world_p->clearedCollisionBuffer, sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
 
-	for(int i = 0; i < particles.length; i++){
+	for(int i = 0; i < world_p->particles.length; i++){
 
-		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+		Particle *particle_p = Array_getItemPointerByIndex(&world_p->particles, i);
 
-		if(!Particle_checkOub(particle_p)){
+		if(!World_Particle_checkOub(world_p, particle_p)){
 
 			int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-			collisionBuffer[index].ID = particle_p->ID;
+			world_p->collisionBuffer[index].ID = particle_p->ID;
 
 		}
 	
 	}
 
 	//check and handle if particles collides with static particles and should become static particles x
-	for(int i = 0; i < particles.length; i++){
+	for(int i = 0; i < world_p->particles.length; i++){
 
-		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+		Particle *particle_p = Array_getItemPointerByIndex(&world_p->particles, i);
 
-		if(Particle_checkOub(particle_p)){
+		if(World_Particle_checkOub(world_p, particle_p)){
 			continue;
 		}
 
 		int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-		if(!checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+		if(!checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 
-			collisionBuffer[index].ID = -1;
+			world_p->collisionBuffer[index].ID = -1;
 
 			int n = 0;
 			bool oub = false;
 
 			bool foundSomething = false;
 
-			while(n < levelWidth){
+			while(n < world_p->levelWidth){
 
 				n++;
 
 				index = getBufferIndex((int)particle_p->pos.x + n, particle_p->pos.y);
 
-				if((int)particle_p->pos.x + n < levelWidth
+				if((int)particle_p->pos.x + n < world_p->levelWidth
 				&& (int)particle_p->pos.x + n >= 0
-				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+				&& checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 					foundSomething = true;
 					break;
 				}
 
 				index = getBufferIndex((int)particle_p->pos.x - n, particle_p->pos.y);
 
-				if((int)particle_p->pos.x - n < levelWidth
+				if((int)particle_p->pos.x - n < world_p->levelWidth
 				&& (int)particle_p->pos.x - n >= 0
-				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+				&& checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 					foundSomething = true;
 					n = -n;
 					break;
@@ -649,10 +651,10 @@ void levelState(){
 
 				index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 			
-				staticParticlesBuffer[index] = rockColor;
+				world_p->staticParticlesBuffer[index] = rockColor;
 				//collisionBuffer[index].ID = -1;
 
-				Array_removeItemByIndex(&particles, i);
+				Array_removeItemByIndex(&world_p->particles, i);
 				i--;
 
 				continue;
@@ -664,43 +666,43 @@ void levelState(){
 	}
 
 	//check if particles collide and move them out of the way x
-	for(int i = 0; i < particles.length; i++){
+	for(int i = 0; i < world_p->particles.length; i++){
 
-		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+		Particle *particle_p = Array_getItemPointerByIndex(&world_p->particles, i);
 
-		if(Particle_checkOub(particle_p)){
+		if(World_Particle_checkOub(world_p, particle_p)){
 			continue;
 		}
 
 		int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
 		if((int)particle_p->pos.x < 0
-		|| (int)particle_p->pos.x >= levelWidth
-		|| collisionBuffer[index].ID != -1
-		&& collisionBuffer[index].ID != particle_p->ID
-		|| !checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+		|| (int)particle_p->pos.x >= world_p->levelWidth
+		|| world_p->collisionBuffer[index].ID != -1
+		&& world_p->collisionBuffer[index].ID != particle_p->ID
+		|| !checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 
 			int n = 0;
 
-			while(n < levelWidth){
+			while(n < world_p->levelWidth){
 
 				n++;
 
 				index = getBufferIndex((int)particle_p->pos.x + n, particle_p->pos.y);
 
-				if(particle_p->pos.x + n < levelWidth
+				if(particle_p->pos.x + n < world_p->levelWidth
 				&& particle_p->pos.x + n >= 0
-				&& collisionBuffer[index].ID == -1
-				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+				&& world_p->collisionBuffer[index].ID == -1
+				&& checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 					break;
 				}
 
 				index = getBufferIndex((int)particle_p->pos.x - n, particle_p->pos.y);
 
-				if(particle_p->pos.x - n < levelWidth
+				if(particle_p->pos.x - n < world_p->levelWidth
 				&& particle_p->pos.x - n >= 0
-				&& collisionBuffer[index].ID == -1
-				&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+				&& world_p->collisionBuffer[index].ID == -1
+				&& checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 					n = -n;
 					break;
 				}
@@ -715,27 +717,27 @@ void levelState(){
 
 		index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-		collisionBuffer[index].ID = particle_p->ID;
+		world_p->collisionBuffer[index].ID = particle_p->ID;
 
 	}
 
 	//check entity col x against moving particles
-	for(int i = 0; i < entities.length; i++){
+	for(int i = 0; i < world_p->entities.length; i++){
 
-		Entity *entity_p = Array_getItemPointerByIndex(&entities, i);
+		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
 
 		for(int x = 0; x < entity_p->body.size.x; x++){
 			for(int y = 0; y < entity_p->body.size.y; y++){
 
-				if(checkOubVec2f(getVec2f((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y))){
+				if(World_checkOubVec2f(world_p, getVec2f((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y))){
 					continue;
 				}
 
 				int index = getBufferIndex((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y);
 
-				if(collisionBuffer[index].ID != -1){
+				if(world_p->collisionBuffer[index].ID != -1){
 
-					Particle *particle_p = Array_getItemPointerByID(&particles, collisionBuffer[index].ID);
+					Particle *particle_p = Array_getItemPointerByID(&world_p->particles, world_p->collisionBuffer[index].ID);
 
 					float entityCenterX = entity_p->lastBody.pos.x + entity_p->body.size.x / 2;
 					float particleX = particle_p->lastPos.x;
@@ -755,21 +757,21 @@ void levelState(){
 
 	}
 
-	for(int i = 0; i < entities.length; i++){
+	for(int i = 0; i < world_p->entities.length; i++){
 
-		Entity *entity_p = Array_getItemPointerByIndex(&entities, i);
+		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
 
 		//check player col x against static particles
 		for(int x = 0; x < entity_p->body.size.x; x++){
 			for(int y = 0; y < entity_p->body.size.y; y++){
 
-				if(checkOubVec2f(getVec2f((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y))){
+				if(World_checkOubVec2f(world_p, getVec2f((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y))){
 					continue;
 				}
 
 				int index = getBufferIndex((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y);
 
-				if(!checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+				if(!checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 
 					float entityCenterX = entity_p->lastBody.pos.x + entity_p->body.size.x / 2;
 					float particleX = entity_p->body.pos.x + x;
@@ -791,26 +793,26 @@ void levelState(){
 	}
 
 	//check player col x against moving particles second time
-	for(int i = 0; i < entities.length; i++){
+	for(int i = 0; i < world_p->entities.length; i++){
 
-		Entity *entity_p = Array_getItemPointerByIndex(&entities, i);
+		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
 
 		for(int x = 0; x < entity_p->body.size.x; x++){
 			for(int y = 0; y < entity_p->body.size.y; y++){
 
-				if(checkOubVec2f(getVec2f((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y))){
+				if(World_checkOubVec2f(world_p, getVec2f((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y))){
 					continue;
 				}
 
 				int index = getBufferIndex((int)entity_p->body.pos.x + x, (int)entity_p->body.pos.y + y);
 
-				if(collisionBuffer[index].ID != -1){
+				if(world_p->collisionBuffer[index].ID != -1){
 
 					//Array_removeItemByID(&particles, collisionBuffer[index].ID);
 
-					Particle *particle_p = Array_getItemPointerByID(&particles, collisionBuffer[index].ID);
+					Particle *particle_p = Array_getItemPointerByID(&world_p->particles, world_p->collisionBuffer[index].ID);
 
-					collisionBuffer[index].ID = -1;
+					world_p->collisionBuffer[index].ID = -1;
 
 					//printf("removed ID: %i x\n", particle_p->ID);
 
@@ -819,26 +821,26 @@ void levelState(){
 					int n = 0;
 					bool foundNothing = true;
 
-					while(n < levelWidth){
+					while(n < world_p->levelWidth){
 
 						n++;
 
 						index = getBufferIndex((int)particle_p->pos.x + n, particle_p->pos.y);
 
-						if(particle_p->pos.x + n < levelWidth
+						if(particle_p->pos.x + n < world_p->levelWidth
 						&& particle_p->pos.x + n >= 0
-						&& collisionBuffer[index].ID == -1
-						&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+						&& world_p->collisionBuffer[index].ID == -1
+						&& checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 							foundNothing = false;
 							break;
 						}
 
 						index = getBufferIndex((int)particle_p->pos.x - n, particle_p->pos.y);
 
-						if(particle_p->pos.x - n < levelWidth
+						if(particle_p->pos.x - n < world_p->levelWidth
 						&& particle_p->pos.x - n >= 0
-						&& collisionBuffer[index].ID == -1
-						&& checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
+						&& world_p->collisionBuffer[index].ID == -1
+						&& checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 							n = -n;
 							foundNothing = false;
 							break;
@@ -857,7 +859,7 @@ void levelState(){
 					
 					index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-					collisionBuffer[index].ID = particle_p->ID;
+					world_p->collisionBuffer[index].ID = particle_p->ID;
 
 				}
 
@@ -963,14 +965,14 @@ void levelState(){
 	*/
 
 	//update screen texture
-	memcpy(screenBuffer, staticParticlesBuffer, sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
+	memcpy(world_p->screenBuffer, world_p->staticParticlesBuffer, sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
 
-	for(int i = 0; i < particles.length; i++){
+	for(int i = 0; i < world_p->particles.length; i++){
 
-		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
+		Particle *particle_p = Array_getItemPointerByIndex(&world_p->particles, i);
 
-		if(particle_p->pos.x >= levelWidth
-		|| particle_p->pos.y >= levelHeight
+		if(particle_p->pos.x >= world_p->levelWidth
+		|| particle_p->pos.y >= world_p->levelHeight
 		|| particle_p->pos.x < 0
 		|| particle_p->pos.y < 0){
 			continue;
@@ -978,13 +980,36 @@ void levelState(){
 
 		int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-		screenBuffer[index] = rockColor;
+		world_p->screenBuffer[index] = rockColor;
 
 	}
 
-	Renderer2D_Texture_free(&screenTexture);
+	Renderer2D_Texture_free(&world_p->screenTexture);
 
-	Renderer2D_Texture_init(&screenTexture, "screen-texture", (unsigned char *)screenBuffer, MAX_WIDTH, MAX_HEIGHT);
+	Renderer2D_Texture_init(&world_p->screenTexture, "screen-texture", (unsigned char *)world_p->screenBuffer, MAX_WIDTH, MAX_HEIGHT);
 
+	//update offset based on player position
+	for(int i = 0; i < world_p->entities.length; i++){
+		
+		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
+
+		if(entity_p->type == ENTITY_TYPE_PLAYER){
+
+			world_p->renderer.offset.x = -entity_p->body.pos.x + WIDTH / 2;
+
+			if(world_p->renderer.offset.x > 0){
+				world_p->renderer.offset.x = 0;
+			}
+
+			if(world_p->renderer.offset.x < -world_p->levelWidth + WIDTH){
+				world_p->renderer.offset.x = -world_p->levelWidth + WIDTH;
+			}
+
+			printf("%i\n", world_p->levelWidth);
+			printf("%i\n", world_p->levelHeight);
+
+		}
+
+	}
 
 }
