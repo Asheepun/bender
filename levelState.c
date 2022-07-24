@@ -562,8 +562,8 @@ void World_levelState(World *world_p){
 			particle_p->pos.x = 0;
 		}
 
-		if(particle_p->pos.x >= WIDTH - 1){
-			particle_p->pos.x = WIDTH - 1;
+		if(particle_p->pos.x >= world_p->levelWidth - 1){
+			particle_p->pos.x = world_p->levelWidth - 1;
 		}
 
 	}
@@ -971,8 +971,8 @@ void World_levelState(World *world_p){
 
 		Particle *particle_p = Array_getItemPointerByIndex(&world_p->particles, i);
 
-		if(particle_p->pos.x >= world_p->levelWidth
-		|| particle_p->pos.y >= world_p->levelHeight
+		if(particle_p->pos.x >= MAX_WIDTH
+		|| particle_p->pos.y >= MAX_HEIGHT
 		|| particle_p->pos.x < 0
 		|| particle_p->pos.y < 0){
 			continue;
@@ -1004,9 +1004,6 @@ void World_levelState(World *world_p){
 			if(world_p->renderer.offset.x < -world_p->levelWidth + WIDTH){
 				world_p->renderer.offset.x = -world_p->levelWidth + WIDTH;
 			}
-
-			printf("%i\n", world_p->levelWidth);
-			printf("%i\n", world_p->levelHeight);
 
 		}
 

@@ -182,6 +182,8 @@ void Level_init(Level *level_p){
 
 	level_p->playerPos = getVec2f(-100, -100);
 
+	level_p->enemyPosesLength = 0;
+
 	String_set(level_p->name, "Untitled", STRING_SIZE);
 
 	level_p->width = WIDTH;
@@ -196,9 +198,13 @@ void World_Level_load(World *world_p, Level *level_p){
 
 	World_addPlayer(world_p, level_p->playerPos);
 
-	world_p->levelWidth = level_p->width;
+	for(int i = 0; i < level_p->enemyPosesLength; i++){
 
-	//initPlayer(level_p->playerPos);
+		World_addEnemy(world_p, level_p->enemyPoses[i]);
+
+	}
+
+	world_p->levelWidth = level_p->width;
 
 }
 

@@ -16,7 +16,7 @@ enum DrawingTools{
 	DRAWING_TOOL_NONE,
 	DRAWING_TOOL_PEN,
 	DRAWING_TOOL_RECTANGLE,
-	DRAWING_TOOL_PLAYER,
+	DRAWING_TOOL_ENTITY,
 	DRAWING_TOOL_WIDTH,
 	NUMBER_OF_DRAWING_TOOLS,
 };
@@ -34,6 +34,8 @@ IGUI_SliderData drawingRadiusSlider;
 IGUI_TextInputData levelTextInput;
 
 enum DrawingTools currentDrawingTool = DRAWING_TOOL_RECTANGLE;
+enum EntityType currentDrawingEntityType = ENTITY_TYPE_PLAYER;
+enum DrawingModes currentDrawingMode = DRAWING_MODE_PLACING;
 
 Vec2f rectanglePos;
 Vec2f rectangleSize;
@@ -104,6 +106,19 @@ void World_editorState(World *world_p){
 			posY += 30;
 		}
 
+		if(currentDrawingTool == DRAWING_TOOL_ENTITY){
+
+			if(IGUI_textButton_click("Player", getVec2f(posX, posY), 20, currentDrawingEntityType == ENTITY_TYPE_PLAYER)){
+				currentDrawingEntityType = ENTITY_TYPE_PLAYER;
+			}
+			posY += 30;
+
+			if(IGUI_textButton_click("Enemy", getVec2f(posX, posY), 20, currentDrawingEntityType == ENTITY_TYPE_ENEMY)){
+				currentDrawingEntityType = ENTITY_TYPE_ENEMY;
+			}
+		
+		}
+
 		posX = 130;
 		posY = 10;
 
@@ -118,8 +133,8 @@ void World_editorState(World *world_p){
 
 		posX += 50;
 
-		if(IGUI_textButton_click("Player", getVec2f(posX, posY), 20, currentDrawingTool == DRAWING_TOOL_PLAYER)){
-			currentDrawingTool = DRAWING_TOOL_PLAYER;
+		if(IGUI_textButton_click("Entity", getVec2f(posX, posY), 20, currentDrawingTool == DRAWING_TOOL_ENTITY)){
+			currentDrawingTool = DRAWING_TOOL_ENTITY;
 		}
 
 		posX += 70;
@@ -128,6 +143,16 @@ void World_editorState(World *world_p){
 			currentDrawingTool = DRAWING_TOOL_WIDTH;
 		}
 
+		if(currentDrawingTool == DRAWING_TOOL_ENTITY
+		&& currentDrawingEntityType == ENTITY_TYPE_ENEMY){
+			if(IGUI_textButton_click("Place", getVec2f(130, 40), 20, currentDrawingMode == DRAWING_MODE_PLACING)){
+				currentDrawingMode = DRAWING_MODE_PLACING;
+			}
+			if(IGUI_textButton_click("Remove", getVec2f(190, 40), 20, currentDrawingMode == DRAWING_MODE_REMOVING)){
+				currentDrawingMode = DRAWING_MODE_REMOVING;
+			}
+			
+		}
 
 		if(currentDrawingTool == DRAWING_TOOL_PEN){
 			IGUI_slider(getVec2f(130, 50), &drawingRadiusSlider);
@@ -307,11 +332,43 @@ void World_editorState(World *world_p){
 		
 	}
 
-	if(currentDrawingTool == DRAWING_TOOL_PLAYER
+	if(currentDrawingTool == DRAWING_TOOL_ENTITY
 	&& !IGUI_hoveringOverGUI){
 
-		if(Engine_pointer.down){
+		if(currentDrawingEntityType == ENTITY_TYPE_PLAYER
+		&& Engine_pointer.down){
 			world_p->currentLevel.playerPos = offsetPointerPos;
+		}
+
+		if(Engine_pointer.downed){
+
+			if(currentDrawingEntityType == ENTITY_TYPE_ENEMY){
+
+				if(currentDrawingMode == DRAWING_MODE_PLACING){
+					world_p->currentLevel.enemyPoses[world_p->currentLevel.enemyPosesLength] = offsetPointerPos;
+					world_p->currentLevel.enemyPosesLength++;
+				}
+				if(currentDrawingMode == DRAWING_MODE_REMOVING){
+
+					for(int i = 0; i < world_p->currentLevel.enemyPosesLength; i++){
+
+						if(offsetPointerPos.x > world_p->currentLevel.enemyPoses[i].x
+						&& offsetPointerPos.x < world_p->currentLevel.enemyPoses[i].x + 15
+						&& offsetPointerPos.y > world_p->currentLevel.enemyPoses[i].y
+						&& offsetPointerPos.y < world_p->currentLevel.enemyPoses[i].y + 20){
+
+							memcpy(world_p->currentLevel.enemyPoses + i, world_p->currentLevel.enemyPoses + i + 1, (world_p->currentLevel.enemyPosesLength - (i + 1)) * sizeof(Vec2f));
+							world_p->currentLevel.enemyPosesLength--;
+							
+							break;
+						}
+
+					}
+
+				}
+
+			}
+
 		}
 	
 	}

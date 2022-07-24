@@ -64,8 +64,6 @@ void Engine_start(){
 	World_initLevelState(&world);
 	//World_initEditorState(&world);
 
-	World_addEnemy(&world, getVec2f(400, 100));
-
 }
 
 void Engine_update(float deltaTime){

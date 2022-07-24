@@ -114,6 +114,8 @@ typedef struct Enemy{
 typedef struct Level{
 	Pixel staticParticlesBuffer[MAX_WIDTH * MAX_HEIGHT];
 	Vec2f playerPos;
+	Vec2f enemyPoses[16];
+	int enemyPosesLength;
 	char name[STRING_SIZE];
 	int width;
 }Level;
