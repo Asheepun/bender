@@ -91,31 +91,6 @@ void World_levelState(World *world_p){
 
 	}
 
-	/*
-	//control player
-	{
-		Body *playerBody_p = getBodyByID(player.bodyID);
-
-		player.walkForce = 0;
-		player.jumpForce = 0;
-
-		if(Engine_keys[ENGINE_KEY_A].down){
-			player.walkForce = -PLAYER_SIDE_ACCELERATION;
-		}
-		if(Engine_keys[ENGINE_KEY_D].down){
-			player.walkForce = PLAYER_SIDE_ACCELERATION;
-		}
-
-		if(Engine_keys[ENGINE_KEY_W].down
-		&& playerBody_p->onGround){
-			player.jumpForce = -PLAYER_JUMP_ACCELERATION;
-		}
-
-		playerBody_p->onGround = false;
-
-	}
-	*/
-
 	forcePoint = offsetPointerPos;
 
 	//check if static particles are bended
@@ -867,102 +842,6 @@ void World_levelState(World *world_p){
 		}
 
 	}
-
-	/*
-	//move and collide player
-	
-	//put particles into collision buffer
-	memcpy(collisionBuffer, clearedCollisionBuffer, sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
-
-	for(int i = 0; i < particles.length; i++){
-
-		Particle *particle_p = Array_getItemPointerByIndex(&particles, i);
-
-		if(!Particle_checkOub(particle_p)){
-
-			int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
-
-			collisionBuffer[index].ID = particle_p->ID;
-
-		}
-	
-	}
-
-	//move player y
-	{
-		Body *body_p = getBodyByID(player.bodyID);
-
-		body_p->pos.y += body_p->velocity.y;
-	}
-
-	//check player col y
-	{
-		Body *body_p = getBodyByID(player.bodyID);
-
-		for(int y = 0; y < body_p->size.y; y++){
-			for(int x = 0; x < body_p->size.x; x++){
-
-				if(checkOubVec2f(getVec2f((int)body_p->pos.x + x, (int)body_p->pos.y + y))){
-					continue;
-				}
-
-				int index = getBufferIndex((int)body_p->pos.x + x, (int)body_p->pos.y + y);
-
-				if(collisionBuffer[index].ID != -1
-				|| !checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
-
-					if(y > body_p->size.y / 2){
-						body_p->pos.y = (int)body_p->pos.y - (body_p->size.y - y);
-						body_p->velocity.y = 0;
-						body_p->onGround = true;
-					}else{
-						body_p->pos.y = (int)body_p->pos.y + y + 1;
-						body_p->velocity.y = 0;
-					}
-					
-				}
-
-			}
-		}
-	}
-
-	//move player x
-	{
-		Body *body_p = getBodyByID(player.bodyID);
-
-		body_p->pos.x += body_p->velocity.x;
-	}
-
-	//check player col x
-	{
-		Body *body_p = getBodyByID(player.bodyID);
-
-		for(int x = 0; x < body_p->size.x; x++){
-			for(int y = 0; y < body_p->size.y; y++){
-
-				if(checkOubVec2f(getVec2f((int)body_p->pos.x + x, (int)body_p->pos.y + y))){
-					continue;
-				}
-
-				int index = getBufferIndex((int)body_p->pos.x + x, (int)body_p->pos.y + y);
-
-				if(collisionBuffer[index].ID != -1
-				|| !checkPixelEquals(staticParticlesBuffer[index], backgroundColor)){
-
-					if(x > body_p->size.x / 2){
-						body_p->pos.x = (int)body_p->pos.x - (body_p->size.x - x);
-						body_p->velocity.x = 0;
-					}else{
-						body_p->pos.x = (int)body_p->pos.x + x + 1;
-						body_p->velocity.x = 0;
-					}
-					
-				}
-
-			}
-		}
-	}
-	*/
 
 	//update screen texture
 	memcpy(world_p->screenBuffer, world_p->staticParticlesBuffer, sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);

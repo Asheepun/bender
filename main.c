@@ -24,37 +24,11 @@ void Engine_start(){
 
 	IGUI_init();
 
-	/*
-	//init screen rendering
-	screenBuffer = malloc(sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
-
-	Renderer2D_Texture_init(&screenTexture, "screen-texture", (unsigned char *)screenBuffer, MAX_WIDTH, MAX_HEIGHT);
-
-	//init world
-	Array_init(&particles, sizeof(Particle));
-	staticParticlesBuffer = malloc(sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
-	collisionBuffer = malloc(sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
-	clearedCollisionBuffer = malloc(sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
-
-	Array_init(&entities, sizeof(Entity));
-	//Array_init(&bodies, sizeof(Body));
-	//Array_init(&enemies, sizeof(Enemy));
-	*/
-
 	World_init(&world);
 
 	Level_init(&world.currentLevel);
 
-	//Array_init(&sprites, sizeof(Sprite));
-
-	{//load level from file
-		long int fileSize;
-		char *data = getFileData_mustFree("levels/Untitled.level", &fileSize);
-
-		memcpy(&world.currentLevel, data, sizeof(Level));
-
-		free(data);
-	}
+	Level_loadFromFile(&world.currentLevel, "levels/Untitled.level");
 
 	World_Level_load(&world, &world.currentLevel);
 

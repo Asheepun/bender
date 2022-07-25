@@ -171,7 +171,7 @@ void World_editorState(World *world_p){
 
 		if(IGUI_textButton_click("New Level", getVec2f(posX, posY), 20, false)){
 
-			Level_init(&world_p->currentLevel);
+			Level_clear(&world_p->currentLevel);
 
 			String_set(levelTextInput.text, world_p->currentLevel.name, STRING_SIZE);
 
@@ -185,12 +185,7 @@ void World_editorState(World *world_p){
 
 		if(IGUI_textButton_click("Save Level", getVec2f(posX, posY), 20, false)){
 
-			char path[STRING_SIZE];
-			String_set(path, "levels/", STRING_SIZE);
-			String_append(path, levelTextInput.text);
-			String_append(path, ".level");
-			
-			writeDataToFile(path, (char *)&world_p->currentLevel, sizeof(Level));
+			Level_writeToFile(&world_p->currentLevel);
 
 		}
 		posY += 30;
@@ -229,18 +224,12 @@ void World_editorState(World *world_p){
 
 					if(IGUI_textButton_click(levelName, getVec2f(posX, posY), 20, false)){
 
-						String_set(levelTextInput.text, levelName, STRING_SIZE);
-
-						long int fileSize;
-						char *data = getFileData_mustFree(path, &fileSize);
-
-						memcpy(&world_p->currentLevel, data, sizeof(Level));
+						Level_loadFromFile(&world_p->currentLevel, path);
 
 						String_set(levelTextInput.text, world_p->currentLevel.name, STRING_SIZE);
 
-						free(data);
-
 					}
+
 					posY += 30;
 
 				}
@@ -276,7 +265,6 @@ void World_editorState(World *world_p){
 					world_p->currentLevel.staticParticlesBuffer[index] = currentColor;
 
 				}
-
 			
 			}
 		}
@@ -345,20 +333,22 @@ void World_editorState(World *world_p){
 			if(currentDrawingEntityType == ENTITY_TYPE_ENEMY){
 
 				if(currentDrawingMode == DRAWING_MODE_PLACING){
-					world_p->currentLevel.enemyPoses[world_p->currentLevel.enemyPosesLength] = offsetPointerPos;
-					world_p->currentLevel.enemyPosesLength++;
+
+					Vec2f *pos_p = Array_addItem(&world_p->currentLevel.enemyPoses);
+					*pos_p = offsetPointerPos;
 				}
 				if(currentDrawingMode == DRAWING_MODE_REMOVING){
 
-					for(int i = 0; i < world_p->currentLevel.enemyPosesLength; i++){
+					for(int i = 0; i < world_p->currentLevel.enemyPoses.length; i++){
 
-						if(offsetPointerPos.x > world_p->currentLevel.enemyPoses[i].x
-						&& offsetPointerPos.x < world_p->currentLevel.enemyPoses[i].x + 15
-						&& offsetPointerPos.y > world_p->currentLevel.enemyPoses[i].y
-						&& offsetPointerPos.y < world_p->currentLevel.enemyPoses[i].y + 20){
+						Vec2f *pos_p = Array_getItemPointerByIndex(&world_p->currentLevel.enemyPoses, i);
 
-							memcpy(world_p->currentLevel.enemyPoses + i, world_p->currentLevel.enemyPoses + i + 1, (world_p->currentLevel.enemyPosesLength - (i + 1)) * sizeof(Vec2f));
-							world_p->currentLevel.enemyPosesLength--;
+						if(offsetPointerPos.x > pos_p->x
+						&& offsetPointerPos.x < pos_p->x + 15
+						&& offsetPointerPos.y > pos_p->y
+						&& offsetPointerPos.y < pos_p->y + 20){
+
+							Array_removeItemByIndex(&world_p->currentLevel.enemyPoses, i);
 							
 							break;
 						}

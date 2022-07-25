@@ -3,6 +3,7 @@
 #include "engine/engine.h"
 #include "engine/renderer2d.h"
 #include "engine/array.h"
+#include "engine/files.h"
 
 #include "stdio.h"
 #include "math.h"
@@ -182,11 +183,143 @@ void Level_init(Level *level_p){
 
 	level_p->playerPos = getVec2f(-100, -100);
 
-	level_p->enemyPosesLength = 0;
+	Array_init(&level_p->enemyPoses, sizeof(Vec2f));
 
 	String_set(level_p->name, "Untitled", STRING_SIZE);
 
 	level_p->width = WIDTH;
+
+}
+
+void Level_clear(Level *level_p){
+
+	for(int i = 0; i < MAX_WIDTH * MAX_HEIGHT; i++){
+		level_p->staticParticlesBuffer[i] = backgroundColor;
+	}
+
+	level_p->playerPos = getVec2f(-100, -100);
+
+	Array_clear(&level_p->enemyPoses);
+
+	String_set(level_p->name, "Untitled", STRING_SIZE);
+
+	level_p->width = WIDTH;
+
+}
+
+void Level_loadFromFile(Level *level_p, char *fileName){
+
+	Level_clear(level_p);
+
+	int pixelDataSize = sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT;
+	
+	long int fileSize;
+	char *data = getFileData_mustFree(fileName, &fileSize);
+
+	memcpy(level_p->staticParticlesBuffer, data, pixelDataSize);
+
+	int numberOfRows = 0;
+	int currentChar = 0;
+	char rows[64][100];
+	memset(rows, 0, 64 * 100);
+	for(int i = 0; i < fileSize - pixelDataSize; i++){
+
+		if(*(data + pixelDataSize + i) == *"\n"){
+			numberOfRows++;
+			currentChar = 0;
+		}else{
+			rows[numberOfRows][currentChar] = *(data + pixelDataSize + i);
+			currentChar++;
+		}
+
+	}
+
+	char *ptr;
+
+	for(int i = 0; i < numberOfRows; i++){
+
+		if(strcmp(rows[i], ":name") == 0){
+			String_set(level_p->name, rows[i + 1], STRING_SIZE);
+			printf("%s\n", rows[i + 1]);
+		}
+
+		if(strcmp(rows[i], ":width") == 0){
+			level_p->width = (int)strtol(rows[i + 1], &ptr, 10);
+		}
+
+		if(strcmp(rows[i], ":playerPos") == 0){
+			level_p->playerPos = getVec2f(
+					(float)strtol(rows[i + 1], &ptr, 10),
+					(float)strtol(rows[i + 2], &ptr, 10)
+			);
+		}
+
+		if(strcmp(rows[i], ":enemyPos") == 0){
+
+			Vec2f *pos_p = Array_addItem(&level_p->enemyPoses);
+
+			*pos_p = getVec2f(
+					(float)strtol(rows[i + 1], &ptr, 10),
+					(float)strtol(rows[i + 2], &ptr, 10)
+			);
+
+		}
+
+	}
+
+	free(data);
+
+}
+
+void Level_writeToFile(Level *level_p){
+
+	int pixelDataSize = sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT;
+	int otherDataSize =  100 * (sizeof(Vec2f) + 64);
+
+	char *data = malloc(pixelDataSize + otherDataSize);
+
+	memset(data, 0, pixelDataSize + otherDataSize);
+
+	memcpy(data, level_p->staticParticlesBuffer, pixelDataSize);
+
+	String_append(data + pixelDataSize, ":name\n");
+	String_append(data + pixelDataSize, level_p->name);
+	String_append(data + pixelDataSize, "\n");
+
+	String_append(data + pixelDataSize, ":width\n");
+	String_append_int(data + pixelDataSize, level_p->width);
+	String_append(data + pixelDataSize, "\n");
+
+	String_append(data + pixelDataSize, ":playerPos\n");
+	String_append_int(data + pixelDataSize, (int)level_p->playerPos.x);
+	String_append(data + pixelDataSize, "\n");
+	String_append_int(data + pixelDataSize, (int)level_p->playerPos.y);
+	String_append(data + pixelDataSize, "\n");
+
+	for(int i = 0; i < level_p->enemyPoses.length; i++){
+
+		Vec2f *pos_p = Array_getItemPointerByIndex(&level_p->enemyPoses, i);
+
+		String_append(data + pixelDataSize, ":enemyPos\n");
+		String_append_int(data + pixelDataSize, (int)pos_p->x);
+		String_append(data + pixelDataSize, "\n");
+		String_append_int(data + pixelDataSize, (int)pos_p->y);
+		String_append(data + pixelDataSize, "\n");
+		
+	}
+
+	otherDataSize = strlen(data + pixelDataSize);
+
+	//printf("%i\n", otherDataSize);
+
+	//printf("%s", data + pixelDataSize);
+
+	char path[STRING_SIZE];
+	String_set(path, "levels/", STRING_SIZE);
+	String_append(path, level_p->name);
+	String_append(path, ".level");
+			
+	writeDataToFile(path, data, pixelDataSize + otherDataSize);
 
 }
 
@@ -198,9 +331,9 @@ void World_Level_load(World *world_p, Level *level_p){
 
 	World_addPlayer(world_p, level_p->playerPos);
 
-	for(int i = 0; i < level_p->enemyPosesLength; i++){
+	for(int i = 0; i < level_p->enemyPoses.length; i++){
 
-		World_addEnemy(world_p, level_p->enemyPoses[i]);
+		World_addEnemy(world_p, *((Vec2f *)Array_getItemPointerByIndex(&level_p->enemyPoses, i)));
 
 	}
 

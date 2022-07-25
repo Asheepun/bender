@@ -114,8 +114,7 @@ typedef struct Enemy{
 typedef struct Level{
 	Pixel staticParticlesBuffer[MAX_WIDTH * MAX_HEIGHT];
 	Vec2f playerPos;
-	Vec2f enemyPoses[16];
-	int enemyPosesLength;
+	Array enemyPoses;
 	char name[STRING_SIZE];
 	int width;
 }Level;
@@ -234,7 +233,13 @@ bool World_Particle_checkOub(World *, Particle *);
 
 void Level_init(Level *);
 
+void Level_clear(Level *);
+
 void World_Level_load(World *, Level *);
+
+void Level_loadFromFile(Level *, char *);
+
+void Level_writeToFile(Level *);
 
 //levelState.c
 
