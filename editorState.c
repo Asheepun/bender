@@ -45,6 +45,8 @@ Pixel currentColor;
 
 bool openingLevel = false;
 
+bool edited = false;
+
 void World_initEditorState(World *world_p){
 
 	//for(int i = 0; i < MAX_WIDTH * MAX_HEIGHT; i++){
@@ -171,6 +173,8 @@ void World_editorState(World *world_p){
 
 		if(IGUI_textButton_click("New Level", getVec2f(posX, posY), 20, false)){
 
+			edited = true;
+
 			Level_clear(&world_p->currentLevel);
 
 			String_set(levelTextInput.text, world_p->currentLevel.name, STRING_SIZE);
@@ -224,6 +228,8 @@ void World_editorState(World *world_p){
 
 					if(IGUI_textButton_click(levelName, getVec2f(posX, posY), 20, false)){
 
+						edited = true;
+
 						Level_loadFromFile(&world_p->currentLevel, path);
 
 						String_set(levelTextInput.text, world_p->currentLevel.name, STRING_SIZE);
@@ -251,6 +257,8 @@ void World_editorState(World *world_p){
 	if(currentDrawingTool == DRAWING_TOOL_PEN
 	&& Engine_pointer.down
 	&& !IGUI_hoveringOverGUI){
+
+		edited = true;
 
 		for(int x = 0; x < drawingRadius * 2; x++){
 			for(int y = 0; y < drawingRadius * 2; y++){
@@ -289,6 +297,8 @@ void World_editorState(World *world_p){
 
 		if(Engine_pointer.upped){
 
+			edited = true;
+
 			if(rectangleSize.x < 0){
 				rectanglePos.x += rectangleSize.x;
 				rectangleSize.x *= -1;
@@ -325,10 +335,16 @@ void World_editorState(World *world_p){
 
 		if(currentDrawingEntityType == ENTITY_TYPE_PLAYER
 		&& Engine_pointer.down){
+
+			edited = true;
+
 			world_p->currentLevel.playerPos = offsetPointerPos;
+
 		}
 
 		if(Engine_pointer.downed){
+
+			edited = true;
 
 			if(currentDrawingEntityType == ENTITY_TYPE_ENEMY){
 
@@ -366,6 +382,8 @@ void World_editorState(World *world_p){
 	if(currentDrawingTool == DRAWING_TOOL_WIDTH
 	&& Engine_pointer.down
 	&& !IGUI_hoveringOverGUI){
+
+		edited = true;
 		
 		world_p->currentLevel.width = offsetPointerPos.x;
 
@@ -375,7 +393,13 @@ void World_editorState(World *world_p){
 
 	String_set(world_p->currentLevel.name, levelTextInput.text, STRING_SIZE);
 
-	World_Level_load(world_p, &world_p->currentLevel);
+	if(edited){
+
+		World_Level_load(world_p, &world_p->currentLevel);
+
+		edited = false;
+	
+	}
 
 	//update screen texture
 	memcpy(world_p->screenBuffer, world_p->staticParticlesBuffer, sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);

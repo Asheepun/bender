@@ -25,17 +25,30 @@ void World_init(World *world_p){
 	Array_init(&world_p->entities, sizeof(Entity));
 
 	Array_init(&world_p->sprites, sizeof(Sprite));
-	
-	world_p->levelWidth = WIDTH;
-	world_p->levelHeight = HEIGHT;
+
+	for(int i = 0; i < MAX_WIDTH * MAX_HEIGHT; i++){
+		world_p->clearedCollisionBuffer[i].ID = -1;
+	}
+
+	world_p->currentLevelIndex = 0;
+
+	World_restore(world_p);
 
 }
 
 void World_restore(World *world_p){
 
-	Array_clear(&world_p->entities);
+	memcpy(world_p->collisionBuffer, world_p->clearedCollisionBuffer, sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
 
+	Array_clear(&world_p->entities);
 	Array_clear(&world_p->sprites);
+	Array_clear(&world_p->particles);
+	
+	world_p->levelWidth = WIDTH;
+	world_p->levelHeight = HEIGHT;
+
+	world_p->playerDied = false;
+	world_p->completedLevel = false;
 
 }
 
@@ -325,9 +338,11 @@ void Level_writeToFile(Level *level_p){
 
 void World_Level_load(World *world_p, Level *level_p){
 
+	World_restore(world_p);
+
 	memcpy(world_p->staticParticlesBuffer, level_p->staticParticlesBuffer, sizeof(Pixel) * MAX_WIDTH * MAX_HEIGHT);
 
-	Array_clear(&world_p->entities);
+	//Array_clear(&world_p->entities);
 
 	World_addPlayer(world_p, level_p->playerPos);
 

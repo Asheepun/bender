@@ -140,6 +140,10 @@ typedef struct World{
 	int screenTextureSize;
 	Array sprites;
 
+	bool playerDied;
+	bool completedLevel;
+	int currentLevelIndex;
+
 }World;
 
 //GLOBAL VARIABLES

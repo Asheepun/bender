@@ -8,25 +8,45 @@
 #include "math.h"
 #include "string.h"
 
+char *levelNames[] = {
+	"levels/level1.level",
+	"levels/level2.level",
+	"levels/level3.level",
+	"levels/level4.level",
+	"levels/level5.level",
+};
 
 Vec2f forcePoint = { 0, 0 };
 
 void World_initLevelState(World *world_p){
 
-	//restore world
-	for(int i = 0; i < MAX_WIDTH * MAX_HEIGHT; i++){
-		world_p->clearedCollisionBuffer[i].ID = -1;
-	}
+	Level_loadFromFile(&world_p->currentLevel, levelNames[world_p->currentLevelIndex]);
 
-	Array_clear(&world_p->particles);
-
-	memcpy(world_p->collisionBuffer, world_p->clearedCollisionBuffer, sizeof(Collision) * MAX_WIDTH * MAX_HEIGHT);
+	World_Level_load(world_p, &world_p->currentLevel);
 
 }
 
 void World_levelState(World *world_p){
 
 	Vec2f offsetPointerPos = getSubVec2f(Engine_pointer.pos, world_p->renderer.offset);
+
+	if(world_p->playerDied){
+
+		World_initLevelState(world_p);
+
+		world_p->playerDied = false;
+
+	}
+
+	if(world_p->completedLevel){
+
+		world_p->currentLevelIndex++;
+
+		World_initLevelState(world_p);
+
+		world_p->completedLevel = false;
+
+	}
 
 	if(Engine_keys[ENGINE_KEY_G].downed){
 		World_initEditorState(world_p);
@@ -198,7 +218,7 @@ void World_levelState(World *world_p){
 
 	}
 
-	//handle oub y
+	//handle particles oub y
 	for(int i = 0; i < world_p->particles.length; i++){
 
 		Particle *particle_p = Array_getItemPointerByIndex(&world_p->particles, i);
@@ -208,7 +228,12 @@ void World_levelState(World *world_p){
 		}
 
 		if(particle_p->pos.y >= HEIGHT - 1){
-			particle_p->pos.y = HEIGHT - 1;
+
+			//Array_removeItemByIndex(&world_p->particles, i);
+			//i--;
+			//continue;
+			//particle_p->pos.y = HEIGHT - 1;
+
 		}
 
 	}
@@ -372,7 +397,7 @@ void World_levelState(World *world_p){
 
 	}
 
-	//check player col y against moving particles
+	//check entities col y against moving particles
 	for(int i = 0; i < world_p->entities.length; i++){
 
 		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
@@ -412,7 +437,7 @@ void World_levelState(World *world_p){
 		}
 	}
 
-	//check player col y against static particles
+	//check entities col y against static particles
 	for(int i = 0; i < world_p->entities.length; i++){
 
 		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
@@ -447,7 +472,24 @@ void World_levelState(World *world_p){
 		}
 	}
 
-	//check player col y against moving particles second time
+	//handle oub entities y
+	for(int i = 0; i < world_p->entities.length; i++){
+
+		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
+		
+		if(entity_p->body.pos.y < 0){
+			entity_p->body.pos.y = 0;
+		}
+
+		if(entity_p->body.pos.y > world_p->levelHeight){
+			if(entity_p->type == ENTITY_TYPE_PLAYER){
+				world_p->playerDied = true;
+			}
+		}
+
+	}
+
+	//check entities col y against moving particles second time
 	for(int i = 0; i < world_p->entities.length; i++){
 
 		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
@@ -696,7 +738,7 @@ void World_levelState(World *world_p){
 
 	}
 
-	//check entity col x against moving particles
+	//check entities col x against moving particles
 	for(int i = 0; i < world_p->entities.length; i++){
 
 		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
@@ -732,11 +774,11 @@ void World_levelState(World *world_p){
 
 	}
 
+	//check entities col x against static particles
 	for(int i = 0; i < world_p->entities.length; i++){
 
 		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
 
-		//check player col x against static particles
 		for(int x = 0; x < entity_p->body.size.x; x++){
 			for(int y = 0; y < entity_p->body.size.y; y++){
 
@@ -767,7 +809,24 @@ void World_levelState(World *world_p){
 		}
 	}
 
-	//check player col x against moving particles second time
+	//handle oub entities x
+	for(int i = 0; i < world_p->entities.length; i++){
+
+		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
+		
+		if(entity_p->body.pos.x < 0){
+			entity_p->body.pos.x = 0;
+		}
+
+		if(entity_p->body.pos.x > world_p->levelWidth){
+			if(entity_p->type == ENTITY_TYPE_PLAYER){
+				world_p->completedLevel = true;
+			}
+		}
+
+	}
+
+	//check entities col x against moving particles second time
 	for(int i = 0; i < world_p->entities.length; i++){
 
 		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
