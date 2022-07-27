@@ -26,9 +26,15 @@ void Engine_start(){
 
 	World_init(&world);
 
+	//world.currentLevelIndex = 4;
+	//world.currentLevelIndex = 3;
+	world.currentLevelIndex = 0;
+
 	Level_init(&world.currentLevel);
 
 	Level_loadFromFile(&world.currentLevel, "levels/Untitled.level");
+
+	Level_loadFromFile(&world.currentLevel, "levels/level1.level");
 
 	World_Level_load(&world, &world.currentLevel);
 

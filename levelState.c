@@ -14,13 +14,16 @@ char *levelNames[] = {
 	"levels/level3.level",
 	"levels/level4.level",
 	"levels/level5.level",
+	"levels/level6.level",
+	"levels/level7.level",
+	"levels/level8.level",
+	"levels/level9.level",
+	"levels/level10.level",
 };
 
 Vec2f forcePoint = { 0, 0 };
 
 void World_initLevelState(World *world_p){
-
-	Level_loadFromFile(&world_p->currentLevel, levelNames[world_p->currentLevelIndex]);
 
 	World_Level_load(world_p, &world_p->currentLevel);
 
@@ -41,6 +44,8 @@ void World_levelState(World *world_p){
 	if(world_p->completedLevel){
 
 		world_p->currentLevelIndex++;
+
+		Level_loadFromFile(&world_p->currentLevel, levelNames[world_p->currentLevelIndex]);
 
 		World_initLevelState(world_p);
 
@@ -260,7 +265,7 @@ void World_levelState(World *world_p){
 
 			int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-			world_p->collisionBuffer[index].ID = particle_p->ID;
+			world_p->collisionBuffer[index].ID = particle_p->entityHeader.ID;
 
 		}
 	
@@ -276,6 +281,8 @@ void World_levelState(World *world_p){
 		}
 
 		int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
+
+		int startIndex = index;
 
 		if(!checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 
@@ -318,6 +325,8 @@ void World_levelState(World *world_p){
 			bool inForce = distanceToForcePoint < BENDING_RADIUS + BENDING_RADIUS_MARGIN && Engine_pointer.down;
 
 			if(!inForce){
+			//&& !checkPixelEquals(world_p->staticParticlesBuffer[startIndex], metalColor)
+			//&& Engine_pointer.down){
 
 				index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 			
@@ -345,11 +354,8 @@ void World_levelState(World *world_p){
 
 		int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-		if((int)particle_p->pos.y < 0
-		|| (int)particle_p->pos.y >= world_p->levelHeight
-		|| world_p->collisionBuffer[index].ID != -1
-		&& world_p->collisionBuffer[index].ID != particle_p->ID
-		|| !checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
+		if(world_p->collisionBuffer[index].ID != -1
+		&& world_p->collisionBuffer[index].ID != particle_p->entityHeader.ID){
 
 			int n = 0;
 			bool foundSomething = false;
@@ -389,11 +395,11 @@ void World_levelState(World *world_p){
 
 			particle_p->velocity.y *= COLLISION_DAMPING;
 
+			index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
+
+			world_p->collisionBuffer[index].ID = particle_p->entityHeader.ID;
+
 		}
-
-		index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
-
-		world_p->collisionBuffer[index].ID = particle_p->ID;
 
 	}
 
@@ -401,9 +407,6 @@ void World_levelState(World *world_p){
 	for(int i = 0; i < world_p->entities.length; i++){
 
 		Entity *entity_p = Array_getItemPointerByIndex(&world_p->entities, i);
-		//Body *body_p = getBodyByID(player.bodyID);
-
-		//body_p->previousCollisionDirection = COLLISION_DIRECTION_NONE;
 
 		for(int y = 0; y < entity_p->body.size.y; y++){
 			for(int x = 0; x < entity_p->body.size.x; x++){
@@ -425,11 +428,9 @@ void World_levelState(World *world_p){
 						entity_p->body.pos.y = (int)entity_p->body.pos.y - (entity_p->body.size.y - y);
 						entity_p->physics.velocity.y = 0;
 						entity_p->physics.onGround = true;
-						//body_p->previousCollisionDirection = COLLISION_DIRECTION_DOWN;
 					}else{
 						entity_p->body.pos.y = (int)entity_p->body.pos.y + y + 1;
 						entity_p->physics.velocity.y = 0;
-						//body_p->previousCollisionDirection = COLLISION_DIRECTION_UP;
 					}
 				}
 
@@ -457,8 +458,6 @@ void World_levelState(World *world_p){
 					float particleY = entity_p->body.pos.y + y;
 
 					if(particleY > entityCenterY){
-					//&& body_p->previousCollisionDirection == COLLISION_DIRECTION_NONE
-					//|| body_p->previousCollisionDirection == COLLISION_DIRECTION_UP){
 						entity_p->body.pos.y = (int)entity_p->body.pos.y - (entity_p->body.size.y - y);
 						entity_p->physics.velocity.y = 0;
 						entity_p->physics.onGround = true;
@@ -553,7 +552,17 @@ void World_levelState(World *world_p){
 
 					index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-					world_p->collisionBuffer[index].ID = particle_p->ID;
+					world_p->collisionBuffer[index].ID = particle_p->entityHeader.ID;
+
+					if(entity_p->type == ENTITY_TYPE_ENEMY){
+
+						world_p->staticParticlesBuffer[index] = rockColor;
+
+						world_p->collisionBuffer[index].ID = -1;
+
+						Array_removeItemByID(&world_p->particles, particle_p->entityHeader.ID);
+						
+					}
 
 				}
 
@@ -607,7 +616,7 @@ void World_levelState(World *world_p){
 
 			int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-			world_p->collisionBuffer[index].ID = particle_p->ID;
+			world_p->collisionBuffer[index].ID = particle_p->entityHeader.ID;
 
 		}
 	
@@ -623,6 +632,8 @@ void World_levelState(World *world_p){
 		}
 
 		int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
+
+		int startIndex = index;
 
 		if(!checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
 
@@ -665,6 +676,8 @@ void World_levelState(World *world_p){
 			bool inForce = distanceToForcePoint < BENDING_RADIUS + BENDING_RADIUS_MARGIN && Engine_pointer.down;
 
 			if(!inForce){
+			//&& !checkPixelEquals(world_p->staticParticlesBuffer[startIndex], metalColor)
+			//&& Engine_pointer.down){
 
 				index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 			
@@ -693,11 +706,8 @@ void World_levelState(World *world_p){
 
 		int index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-		if((int)particle_p->pos.x < 0
-		|| (int)particle_p->pos.x >= world_p->levelWidth
-		|| world_p->collisionBuffer[index].ID != -1
-		&& world_p->collisionBuffer[index].ID != particle_p->ID
-		|| !checkPixelEquals(world_p->staticParticlesBuffer[index], backgroundColor)){
+		if(world_p->collisionBuffer[index].ID != -1
+		&& world_p->collisionBuffer[index].ID != particle_p->entityHeader.ID){
 
 			int n = 0;
 
@@ -734,7 +744,7 @@ void World_levelState(World *world_p){
 
 		index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-		world_p->collisionBuffer[index].ID = particle_p->ID;
+		world_p->collisionBuffer[index].ID = particle_p->entityHeader.ID;
 
 	}
 
@@ -794,8 +804,6 @@ void World_levelState(World *world_p){
 					float particleX = entity_p->body.pos.x + x;
 
 					if(particleX > entityCenterX){
-					//&& body_p->previousCollisionDirection == COLLISION_DIRECTION_NONE
-					//|| body_p->previousCollisionDirection == COLLISION_DIRECTION_RIGHT){
 						entity_p->body.pos.x = (int)entity_p->body.pos.x - (entity_p->body.size.x - x);
 						entity_p->physics.velocity.x = 0;
 					}else{
@@ -893,13 +901,43 @@ void World_levelState(World *world_p){
 					
 					index = getBufferIndex(particle_p->pos.x, particle_p->pos.y);
 
-					world_p->collisionBuffer[index].ID = particle_p->ID;
+					world_p->collisionBuffer[index].ID = particle_p->entityHeader.ID;
+
+					if(entity_p->type == ENTITY_TYPE_ENEMY){
+			
+						world_p->staticParticlesBuffer[index] = rockColor;
+
+						world_p->collisionBuffer[index].ID = -1;
+
+						Array_removeItemByID(&world_p->particles, particle_p->entityHeader.ID);
+						
+					}
 
 				}
 
 			}
 		}
 
+	}
+
+	//check if player collides with enemies
+	for(int i = 0; i < world_p->entities.length; i++){
+
+		Entity *entity1_p = Array_getItemPointerByIndex(&world_p->entities, i);
+
+		for(int j = 0; j < world_p->entities.length; j++){
+
+			Entity *entity2_p = Array_getItemPointerByIndex(&world_p->entities, j);
+
+			if(i != j
+			&& entity1_p->type == ENTITY_TYPE_PLAYER
+			&& entity2_p->type == ENTITY_TYPE_ENEMY
+			&& checkBodyBodyCollision(entity1_p->body, entity2_p->body)){
+				world_p->playerDied = true;
+			}
+		
+		}
+	
 	}
 
 	//update screen texture

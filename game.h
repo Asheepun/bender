@@ -36,7 +36,8 @@ typedef struct Sprite{
 }Sprite;
 
 typedef struct Particle{
-	size_t ID;
+	EntityHeader entityHeader;
+	//size_t ID;
 	Vec2f pos;
 	Vec2f lastPos;
 	Vec2f velocity;
@@ -226,6 +227,8 @@ Sprite *World_addSprite(World *, Vec2f, Vec2f, Renderer2D_Color, float);
 
 Entity *World_addPlayer(World *, Vec2f);
 Entity *World_addEnemy(World *, Vec2f);
+
+bool checkBodyBodyCollision(Body, Body);
 
 //Body *addBody(Vec2f, Vec2f);
 

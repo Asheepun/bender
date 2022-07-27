@@ -80,8 +80,9 @@ Particle *World_addParticle(World *world_p, Vec2f pos){
 
 	Particle *particle_p = Array_addItem(&world_p->particles);
 
-	particle_p->ID = currentID;
-	currentID++;
+	EntityHeader_init(&particle_p->entityHeader);
+	////particle_p->ID = currentID;
+	//currentID++;
 
 	particle_p->pos = pos;
 	particle_p->lastPos = pos;
@@ -370,4 +371,11 @@ Entity *World_addEnemy(World *world_p, Vec2f pos){
 
 	return entity_p;
 
+}
+
+bool checkBodyBodyCollision(Body body1, Body body2){
+	return body1.pos.x < body2.pos.x + body2.size.x
+		&& body1.pos.x + body1.size.x > body2.pos.x
+		&& body1.pos.y < body2.pos.y + body2.size.y
+		&& body1.pos.y + body1.size.y > body2.pos.y;
 }
